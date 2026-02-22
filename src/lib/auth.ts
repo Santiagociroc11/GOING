@@ -32,10 +32,12 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 if (!user) {
+                    console.log("[Auth] Usuario no encontrado para email:", email);
                     throw new Error("Invalid credentials");
                 }
 
                 if (!user.password) {
+                    console.log("[Auth] Usuario sin contraseña:", user.email);
                     throw new Error("Invalid credentials");
                 }
 
@@ -45,6 +47,7 @@ export const authOptions: NextAuthOptions = {
                     : credentials.password === user.password;
 
                 if (!isCorrectPassword) {
+                    console.log("[Auth] Contraseña incorrecta para:", user.email, "| bcrypt:", isBcryptHash);
                     throw new Error("Invalid credentials");
                 }
 
