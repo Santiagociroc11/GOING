@@ -10,12 +10,18 @@ export async function register() {
   log(`NEXTAUTH_SECRET: ${process.env.NEXTAUTH_SECRET ? "definido" : "(no definido)"}`);
   log("=== Servidor listo (MongoDB se conectará en la primera petición) ===");
 
-  const { runRemindPendingOrders } = await import("@/lib/cron-reminders");
+  const port = process.env.PORT || "3000";
+  const cronSecret = process.env.CRON_SECRET;
+  const cronUrl = `http://127.0.0.1:${port}/api/cron/remind-pending-orders`;
+
   setInterval(async () => {
     try {
-      const { remindersSent, checked } = await runRemindPendingOrders();
-      if (remindersSent > 0) {
-        log(`Cron: ${remindersSent} recordatorios enviados (${checked} pedidos revisados)`);
+      const res = await fetch(cronUrl, {
+        headers: cronSecret ? { Authorization: `Bearer ${cronSecret}` } : {},
+      });
+      const data = (await res.json().catch(() => ({}))) as { remindersSent?: number; checked?: number };
+      if (data.remindersSent && data.remindersSent > 0) {
+        log(`Cron: ${data.remindersSent} recordatorios enviados (${data.checked ?? 0} pedidos revisados)`);
       }
     } catch (e) {
       console.error("[GOING] Cron remind-pending:", e);
