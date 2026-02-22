@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchWithToast, mutateWithToast } from "@/lib/toast";
+import { fetchWithToast, mutateWithToast, toast } from "@/lib/toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCcw, Bell, Building2, Truck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RefreshCcw, Bell, Building2, Truck, Send } from "lucide-react";
 import type { NotificationType } from "@/models/NotificationSettings";
 
 const NOTIFICATION_CONFIG: { key: NotificationType; label: string; description: string; role: "business" | "driver" }[] = [
@@ -22,6 +24,9 @@ export default function AdminNotificationsPage() {
     const [settings, setSettings] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
+    const [testUserId, setTestUserId] = useState("");
+    const [testLoading, setTestLoading] = useState(false);
+    const [testResult, setTestResult] = useState<{ ok: boolean; logs?: string[]; error?: string; summary?: { sent: number; failed: number; total: number }; results?: { ok: boolean; error?: string }[] } | null>(null);
 
     const fetchSettings = async () => {
         setLoading(true);
@@ -42,6 +47,23 @@ export default function AdminNotificationsPage() {
         });
         setSaving(null);
         if (!error && data && typeof data === "object") setSettings(data as Record<string, boolean>);
+    };
+
+    const handleTestPush = async (useCurrentUser: boolean) => {
+        setTestLoading(true);
+        setTestResult(null);
+        const body = useCurrentUser ? { useCurrentUser: true } : { userId: testUserId.trim() };
+        if (!useCurrentUser && !testUserId.trim()) {
+            toast.warning("Escribe un userId o usa 'Probar a usuario actual'");
+            setTestLoading(false);
+            return;
+        }
+        const { data } = await mutateWithToast("/api/admin/test-push", {
+            method: "POST",
+            body,
+        });
+        setTestLoading(false);
+        if (data && typeof data === "object") setTestResult(data as typeof testResult);
     };
 
     const businessItems = NOTIFICATION_CONFIG.filter((c) => c.role === "business");
@@ -122,6 +144,56 @@ export default function AdminNotificationsPage() {
                                     />
                                 </div>
                             ))}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="sm:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Send className="h-5 w-5 text-orange-600" />
+                                Probar notificación push
+                            </CardTitle>
+                            <CardDescription>
+                                Envía una notificación de prueba para diagnosticar problemas. Si suplantas un usuario, usa &quot;Probar a usuario actual&quot;.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <Input
+                                    placeholder="ID del usuario (ej: 507f1f77bcf86cd799439011)"
+                                    value={testUserId}
+                                    onChange={(e) => setTestUserId(e.target.value)}
+                                    className="max-w-xs"
+                                />
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handleTestPush(false)}
+                                    disabled={testLoading}
+                                >
+                                    {testLoading ? "Enviando…" : "Enviar a userId"}
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => handleTestPush(true)}
+                                    disabled={testLoading}
+                                >
+                                    Probar a usuario actual
+                                </Button>
+                            </div>
+                            {testResult && (
+                                <div className={`rounded-lg p-4 text-sm font-mono ${testResult.ok ? "bg-green-50 text-green-800" : "bg-amber-50 text-amber-900"}`}>
+                                    {testResult.error && <p className="font-semibold mb-2">{testResult.error}</p>}
+                                    {testResult.summary && (
+                                        <p className="mb-2">
+                                            Enviados: {testResult.summary.sent} / {testResult.summary.total}
+                                            {testResult.summary.failed > 0 && ` (fallidos: ${testResult.summary.failed})`}
+                                        </p>
+                                    )}
+                                    {testResult.logs && (
+                                        <pre className="whitespace-pre-wrap text-xs overflow-auto max-h-48">{testResult.logs.join("\n")}</pre>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

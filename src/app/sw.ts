@@ -28,8 +28,7 @@ const serwist = new Serwist({
     },
 });
 
-serwist.addEventListeners();
-
+// Registrar push ANTES de Serwist para evitar que intercepte el evento
 self.addEventListener("push", (event) => {
     if (!event.data) return;
     event.waitUntil(
@@ -71,3 +70,5 @@ self.addEventListener("notificationclick", (event) => {
         })
     );
 });
+
+serwist.addEventListeners();

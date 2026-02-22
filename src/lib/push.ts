@@ -120,9 +120,7 @@ export async function sendPushToUser(
         } catch (err: unknown) {
             failed++;
             const status = (err as { statusCode?: number })?.statusCode;
-            if (process.env.NODE_ENV === "development") {
-                console.error("[Push] Send failed:", (err as Error)?.message, "status:", status, "endpoint:", sub.endpoint?.slice(0, 50));
-            }
+            console.error("[Push] Send failed:", (err as Error)?.message, "status:", status, "userId:", userId, "endpoint:", sub.endpoint?.slice(0, 80));
             if (status === 410 || status === 404) {
                 await PushSubscription.deleteOne({ _id: sub._id });
             }
