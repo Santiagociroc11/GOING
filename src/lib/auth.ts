@@ -5,6 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
 export const authOptions: NextAuthOptions = {
+    ...(process.env.AUTH_TRUST_HOST !== "false" && { trustHost: true } as object),
     providers: [
         CredentialsProvider({
             name: "Credentials",
@@ -13,15 +14,23 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                await dbConnect();
-
-                if (!credentials?.email || !credentials.password) {
+                if (!credentials?.email?.trim() || !credentials.password) {
                     throw new Error("Invalid credentials");
                 }
 
-                const user = await User.findOne({ email: credentials.email });
+                const email = credentials.email.trim().toLowerCase();
+                await dbConnect();
 
-                if (!user || !user.password) {
+                // Búsqueda case-insensitive por email (evita Admin@ vs admin@)
+                const user = await User.findOne({
+                    email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+                });
+
+                if (!user) {
+                    throw new Error("Invalid credentials");
+                }
+
+                if (!user.password) {
                     throw new Error("Invalid credentials");
                 }
 
