@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Package, Route, Settings, UserCircle } from "lucide-react";
+import { LogOut, Package, Route, Settings, UserCircle, Users } from "lucide-react";
 
 export default function Navbar() {
     const { data: session } = useSession();
@@ -20,9 +20,14 @@ export default function Navbar() {
                     <div className="flex items-center gap-6">
                         <div className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600">
                             {(session?.user as any)?.role === "ADMIN" && (
-                                <Link href="/dashboard/admin/rates" className="hover:text-orange-600 flex items-center gap-1">
-                                    <Settings className="h-4 w-4" /> Tarifas
-                                </Link>
+                                <>
+                                    <Link href="/dashboard/admin/users" className="hover:text-orange-600 flex items-center gap-1">
+                                        <Users className="h-4 w-4" /> Usuarios
+                                    </Link>
+                                    <Link href="/dashboard/admin/rates" className="hover:text-orange-600 flex items-center gap-1">
+                                        <Settings className="h-4 w-4" /> Tarifas
+                                    </Link>
+                                </>
                             )}
                             {(session?.user as any)?.role === "BUSINESS" && (
                                 <Link href="/dashboard/business/orders/new" className="hover:text-orange-600 flex items-center gap-1">

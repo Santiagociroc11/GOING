@@ -25,17 +25,30 @@ export default async function DashboardPage() {
 
             <div className="grid md:grid-cols-3 gap-6 mt-8">
                 {role === "ADMIN" && (
-                    <Card className="hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                            <CardTitle>Gestión de Tarifas</CardTitle>
-                            <CardDescription>Configura precios base y límites por km por ciudad.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Link href="/dashboard/admin/rates">
-                                <Button className="w-full bg-orange-600 hover:bg-orange-700">Gestionar Tarifas</Button>
-                            </Link>
-                        </CardContent>
-                    </Card>
+                    <>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Gestión de Usuarios</CardTitle>
+                                <CardDescription>Visualiza y crea usuarios (negocios, conductores, admins).</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/users">
+                                    <Button className="w-full bg-orange-600 hover:bg-orange-700">Gestionar Usuarios</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Gestión de Tarifas</CardTitle>
+                                <CardDescription>Configura precios base y límites por km por ciudad.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/rates">
+                                    <Button variant="outline" className="w-full">Gestionar Tarifas</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                    </>
                 )}
 
                 {role === "BUSINESS" && (
