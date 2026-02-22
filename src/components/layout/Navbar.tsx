@@ -41,6 +41,9 @@ export default function Navbar({ effectiveSession }: { effectiveSession?: Effect
                         <div className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600">
                             {(displaySession?.user as any)?.role === "ADMIN" && !isImpersonating && (
                                 <>
+                                    <Link href="/dashboard/admin/orders" className="hover:text-orange-600 flex items-center gap-1">
+                                        <Package className="h-4 w-4" /> Pedidos
+                                    </Link>
                                     <Link href="/dashboard/admin/users" className="hover:text-orange-600 flex items-center gap-1">
                                         <Users className="h-4 w-4" /> Usuarios
                                     </Link>

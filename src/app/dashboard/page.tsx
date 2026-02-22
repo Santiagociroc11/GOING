@@ -3,6 +3,7 @@ import { getEffectiveSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import DriverDashboardRedirect from "./DriverDashboardRedirect";
 
 export default async function DashboardPage() {
     const session = await getEffectiveSession();
@@ -12,6 +13,10 @@ export default async function DashboardPage() {
     }
 
     const role = (session.user as any).role;
+
+    if (role === "DRIVER") {
+        return <DriverDashboardRedirect />;
+    }
 
     return (
         <div className="space-y-6">
@@ -25,6 +30,50 @@ export default async function DashboardPage() {
             <div className="grid md:grid-cols-3 gap-6 mt-8">
                 {role === "ADMIN" && (
                     <>
+                        <Card className="hover:shadow-lg transition-shadow border-orange-100">
+                            <CardHeader>
+                                <CardTitle>Flujo de Pedidos</CardTitle>
+                                <CardDescription>Visualiza el estado de todos los pedidos en tiempo real.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/orders">
+                                    <Button className="w-full bg-orange-600 hover:bg-orange-700">Ver Flujo</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Negocios</CardTitle>
+                                <CardDescription>Análisis de negocios y pedidos realizados.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/businesses">
+                                    <Button variant="outline" className="w-full">Ver Negocios</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Domiciliarios</CardTitle>
+                                <CardDescription>Análisis de conductores y entregas.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/drivers">
+                                    <Button variant="outline" className="w-full">Ver Domiciliarios</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Movimientos Financieros</CardTitle>
+                                <CardDescription>Historial de ingresos por pedidos entregados.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/finance">
+                                    <Button variant="outline" className="w-full">Ver Finanzas</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
                         <Card className="hover:shadow-lg transition-shadow">
                             <CardHeader>
                                 <CardTitle>Gestión de Usuarios</CardTitle>
@@ -32,7 +81,7 @@ export default async function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <Link href="/dashboard/admin/users">
-                                    <Button className="w-full bg-orange-600 hover:bg-orange-700">Gestionar Usuarios</Button>
+                                    <Button variant="outline" className="w-full">Gestionar Usuarios</Button>
                                 </Link>
                             </CardContent>
                         </Card>

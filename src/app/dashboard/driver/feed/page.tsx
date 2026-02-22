@@ -43,8 +43,9 @@ export default function DriverFeedPage() {
         });
         setActingOn(null);
         if (ok) {
-            toast.success("¡Entrega Aceptada! Mírala en Mis Entregas.");
+            toast.success("¡Entrega Aceptada! Redirigiendo a tu entrega...");
             setOrders((prev) => prev.filter((o) => o._id !== orderId));
+            window.location.href = "/dashboard/driver/orders";
         }
     };
 

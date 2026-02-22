@@ -1,4 +1,5 @@
 import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/layout/Sidebar";
 import { getEffectiveSession } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -10,9 +11,12 @@ export default async function DashboardLayout({
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar effectiveSession={effectiveSession} />
-            <main className="flex-1 container mx-auto px-4 py-8">
-                {children}
-            </main>
+            <div className="flex flex-1">
+                <Sidebar effectiveSession={effectiveSession} />
+                <main className="flex-1 min-w-0 container mx-auto px-4 py-8">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 }

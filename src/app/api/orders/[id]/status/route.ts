@@ -14,7 +14,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         const body = await req.json();
         const { status } = body;
 
-        const validStatuses = ["ACCEPTED", "PICKED_UP", "DELIVERED", "CANCELLED"];
+        const validStatuses = ["PENDING", "ACCEPTED", "PICKED_UP", "DELIVERED", "CANCELLED"];
         if (!validStatuses.includes(status)) {
             return NextResponse.json({ message: "Invalid status" }, { status: 400 });
         }
@@ -59,7 +59,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 return NextResponse.json({ message: "Cannot change to this status" }, { status: 400 });
             }
         } else if (role === "ADMIN") {
-            order.status = status; // Admin can do anything
+            order.status = status;
+            if (status === "PENDING") order.driverId = undefined; // Liberar conductor
         }
 
         await order.save();
