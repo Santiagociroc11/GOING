@@ -30,6 +30,8 @@ export interface IOrder extends Document {
     pickupProofUrl?: string;
     deliveryProofUrl?: string;
     codCollectedAt?: Date; // Confirmación de recaudo COD por el negocio
+    lastReminderAt?: Date;
+    reminderCount?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -70,6 +72,8 @@ const OrderSchema: Schema = new Schema(
         pickupProofUrl: { type: String },
         deliveryProofUrl: { type: String },
         codCollectedAt: { type: Date },
+        lastReminderAt: { type: Date },
+        reminderCount: { type: Number, default: 0 },
     },
     { timestamps: true }
 );

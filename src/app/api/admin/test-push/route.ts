@@ -27,9 +27,11 @@ export async function POST(req: Request) {
         if (body.useCurrentUser) {
             const effective = await getEffectiveSession();
             targetUserId = (effective?.user as any)?.id;
+        } else if (body.useMyself) {
+            targetUserId = (session.user as any).id;
         }
         if (!targetUserId) {
-            return NextResponse.json({ message: "Se requiere userId o useCurrentUser: true" }, { status: 400 });
+            return NextResponse.json({ message: "Selecciona un usuario o usa 'Probar a mí mismo'" }, { status: 400 });
         }
 
         const logs: string[] = [];

@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCcw, Bell, Building2, Truck, Send } from "lucide-react";
 import type { NotificationType } from "@/models/NotificationSettings";
 
@@ -24,7 +24,8 @@ export default function AdminNotificationsPage() {
     const [settings, setSettings] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
-    const [testUserId, setTestUserId] = useState("");
+    const [testUserId, setTestUserId] = useState<string>("");
+    const [users, setUsers] = useState<{ _id: string; name: string; email: string; role: string }[]>([]);
     const [testLoading, setTestLoading] = useState(false);
     const [testResult, setTestResult] = useState<{ ok: boolean; logs?: string[]; error?: string; summary?: { sent: number; failed: number; total: number }; results?: { ok: boolean; error?: string }[] } | null>(null);
 
@@ -39,6 +40,12 @@ export default function AdminNotificationsPage() {
         fetchSettings();
     }, []);
 
+    useEffect(() => {
+        fetchWithToast<{ _id: string; name: string; email: string; role: string }[]>("/api/admin/users").then(
+            ({ data }) => data && setUsers(data)
+        );
+    }, []);
+
     const handleToggle = async (key: string, value: boolean) => {
         setSaving(key);
         const { data, error } = await mutateWithToast("/api/admin/notification-settings", {
@@ -49,12 +56,16 @@ export default function AdminNotificationsPage() {
         if (!error && data && typeof data === "object") setSettings(data as Record<string, boolean>);
     };
 
-    const handleTestPush = async (useCurrentUser: boolean) => {
+    const handleTestPush = async (useCurrentUser?: boolean, useMyself?: boolean) => {
         setTestLoading(true);
         setTestResult(null);
-        const body = useCurrentUser ? { useCurrentUser: true } : { userId: testUserId.trim() };
-        if (!useCurrentUser && !testUserId.trim()) {
-            toast.warning("Escribe un userId o usa 'Probar a usuario actual'");
+        const body = useCurrentUser
+            ? { useCurrentUser: true }
+            : useMyself
+              ? { useMyself: true }
+              : { userId: testUserId };
+        if (!useCurrentUser && !useMyself && !testUserId) {
+            toast.warning("Selecciona un usuario o usa 'Probar a mí mismo'");
             setTestLoading(false);
             return;
         }
@@ -154,30 +165,45 @@ export default function AdminNotificationsPage() {
                                 Probar notificación push
                             </CardTitle>
                             <CardDescription>
-                                Envía una notificación de prueba para diagnosticar problemas. Si suplantas un usuario, usa &quot;Probar a usuario actual&quot;.
+                                Envía una notificación de prueba. Selecciona un usuario o prueba contigo mismo (activa notificaciones en tu navegador primero).
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex flex-wrap gap-2 items-center">
-                                <Input
-                                    placeholder="ID del usuario (ej: 507f1f77bcf86cd799439011)"
-                                    value={testUserId}
-                                    onChange={(e) => setTestUserId(e.target.value)}
-                                    className="max-w-xs"
-                                />
+                                <Select value={testUserId} onValueChange={setTestUserId}>
+                                    <SelectTrigger className="w-[280px]">
+                                        <SelectValue placeholder="Seleccionar usuario…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {users.map((u) => (
+                                            <SelectItem key={String(u._id)} value={String(u._id)}>
+                                                {u.name} ({u.email}) — {u.role}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Button
                                     variant="outline"
-                                    onClick={() => handleTestPush(false)}
-                                    disabled={testLoading}
+                                    onClick={() => handleTestPush(false, false)}
+                                    disabled={testLoading || !testUserId}
                                 >
-                                    {testLoading ? "Enviando…" : "Enviar a userId"}
+                                    {testLoading ? "Enviando…" : "Enviar"}
                                 </Button>
                                 <Button
                                     variant="secondary"
-                                    onClick={() => handleTestPush(true)}
+                                    onClick={() => handleTestPush(false, true)}
                                     disabled={testLoading}
                                 >
-                                    Probar a usuario actual
+                                    Probar a mí mismo
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleTestPush(true)}
+                                    disabled={testLoading}
+                                    title="Si suplantas un usuario, envía al suplantado"
+                                >
+                                    Usuario actual
                                 </Button>
                             </div>
                             {testResult && (

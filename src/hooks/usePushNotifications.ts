@@ -36,7 +36,7 @@ export function usePushNotifications() {
             const keyBytes = urlBase64ToUint8Array(publicKey);
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: new Uint8Array(keyBytes) as BufferSource,
+                applicationServerKey: keyBytes,
             });
 
             const p256dh = toBase64Url(sub.getKey("p256dh")!);
