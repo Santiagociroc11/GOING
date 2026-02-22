@@ -90,7 +90,8 @@ export const authOptions: NextAuthOptions = {
                 httpOnly: true,
                 sameSite: "lax",
                 path: "/",
-                secure: process.env.NODE_ENV === "production",
+                // secure: true solo si la URL es HTTPS (evita fallos detrás de proxy)
+                secure: (process.env.NEXTAUTH_URL || "").startsWith("https://"),
                 maxAge: 30 * 24 * 60 * 60, // 30 días - persiste al cerrar el navegador
             },
         },
