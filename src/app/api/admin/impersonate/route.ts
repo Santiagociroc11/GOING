@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, IMPERSONATE_COOKIE } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+import { logAdminAction } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -28,6 +29,13 @@ export async function POST(req: NextRequest) {
             userEmail: target.email,
             userRole: target.role,
         })
+    );
+
+    await logAdminAction(
+        (session.user as any).id,
+        "IMPERSONATE_START",
+        target._id,
+        { targetName: target.name, targetRole: target.role }
     );
 
     const res = NextResponse.json({ ok: true, redirect: "/dashboard" });

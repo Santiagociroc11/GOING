@@ -10,6 +10,7 @@ import {
     ClipboardList,
     Building2,
     DollarSign,
+    History,
 } from "lucide-react";
 
 export type NavItem = {
@@ -24,6 +25,7 @@ export const ADMIN_NAV: NavItem[] = [
     { href: "/dashboard/admin/businesses", label: "Negocios", icon: Building2 },
     { href: "/dashboard/admin/drivers", label: "Domiciliarios", icon: Truck },
     { href: "/dashboard/admin/finance", label: "Finanzas", icon: DollarSign },
+    { href: "/dashboard/admin/audit", label: "Historial Admin", icon: History },
     { href: "/dashboard/admin/users", label: "Usuarios", icon: Users },
     { href: "/dashboard/admin/rates", label: "Tarifas", icon: Settings },
 ];

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { logAdminAction } from "@/lib/audit";
 
 function normalizeCity(city: string) {
     return city
@@ -105,6 +106,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ message: "No hay campos válidos para actualizar" }, { status: 400 });
         }
 
+        const onlyActive = Object.keys(updateData).length === 1 && "active" in updateData;
+        if (onlyActive && typeof updateData.active === "boolean") {
+            await logAdminAction(
+                (session.user as any).id,
+                updateData.active ? "USER_ACTIVATE" : "USER_DEACTIVATE",
+                user._id,
+                { userName: user.name }
+            );
+        } else {
+            await logAdminAction(
+                (session.user as any).id,
+                "USER_EDIT",
+                user._id,
+                { userName: user.name, fields: Object.keys(updateData) }
+            );
+        }
+
         const updated = await User.findByIdAndUpdate(id, { $set: updateData }, { new: true })
             .select("-password")
             .lean();
@@ -138,6 +156,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
         // Soft delete: desactivar en lugar de borrar (preserva historial de órdenes)
         await User.findByIdAndUpdate(id, { $set: { active: false } });
+
+        await logAdminAction(
+            (session.user as any).id,
+            "USER_DEACTIVATE",
+            user._id,
+            { userName: user.name }
+        );
 
         return NextResponse.json({ message: "Usuario desactivado correctamente" });
     } catch (error) {

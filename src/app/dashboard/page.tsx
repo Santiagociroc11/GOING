@@ -102,6 +102,17 @@ export default async function DashboardPage() {
                                 </Link>
                             </CardContent>
                         </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Historial Admin</CardTitle>
+                                <CardDescription>Recargas de saldo y acciones realizadas por administradores.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/audit">
+                                    <Button variant="outline" className="w-full">Ver Historial</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
                     </>
                 )}
 

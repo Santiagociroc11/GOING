@@ -129,3 +129,13 @@
 .tap-clean {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Barra de progreso en navegación */
+@keyframes nav-progress {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(-20%); }
+  100% { transform: translateX(100%); }
+}
+.animate-nav-progress {
+  animation: nav-progress 1.5s ease-in-out infinite;
+}

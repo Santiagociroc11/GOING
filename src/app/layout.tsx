@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/PwaRegister";
+import { NavProgress } from "@/components/NavProgress";
 
 // System fonts: no network fetch during build (ideal for Docker/CI)
 const fontVariables = {
@@ -80,6 +81,7 @@ export default function RootLayout({
         style={fontVariables as React.CSSProperties}
       >
         <AuthProvider>
+          <NavProgress />
           {children}
           <Toaster />
           <PwaRegister />
