@@ -39,7 +39,7 @@ export default function AdminNotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [testUserId, setTestUserId] = useState<string>("");
-    const [logsUserId, setLogsUserId] = useState<string>("");
+    const [logsUserId, setLogsUserId] = useState<string>("__all__");
     const [users, setUsers] = useState<{ _id: string; name: string; email: string; role: string }[]>([]);
     const [testLoading, setTestLoading] = useState(false);
     const [testResult, setTestResult] = useState<{ ok: boolean; targetUserId?: string; logs?: string[]; error?: string; summary?: { sent: number; failed: number; total: number }; results?: { ok: boolean; error?: string; deliveryId?: string }[] } | null>(null);
@@ -106,8 +106,8 @@ export default function AdminNotificationsPage() {
         if (data && typeof data === "object") {
             const res = data as { targetUserId?: string };
             setTestResult(data as typeof testResult);
-            const uid = testUserId || res.targetUserId || "";
-            setLogsUserId(uid);
+            const uid = testUserId || res.targetUserId || "__all__";
+            setLogsUserId(uid || "__all__");
             fetchPushLogs(uid || undefined);
         }
     };
@@ -270,12 +270,12 @@ export default function AdminNotificationsPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-2">
-                                <Select value={logsUserId} onValueChange={(v) => { setLogsUserId(v); fetchPushLogs(v || undefined); }}>
+                                <Select value={logsUserId} onValueChange={(v) => { setLogsUserId(v); fetchPushLogs(v === "__all__" ? undefined : v); }}>
                                     <SelectTrigger className="w-[240px]">
                                         <SelectValue placeholder="Todos los usuarios" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Todos</SelectItem>
+                                        <SelectItem value="__all__">Todos</SelectItem>
                                         {users.map((u) => (
                                             <SelectItem key={String(u._id)} value={String(u._id)}>
                                                 {u.name} ({u.email})
@@ -283,7 +283,7 @@ export default function AdminNotificationsPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Button variant="outline" size="sm" onClick={() => fetchPushLogs(logsUserId || undefined)} disabled={logsLoading}>
+                                <Button variant="outline" size="sm" onClick={() => fetchPushLogs(logsUserId === "__all__" ? undefined : logsUserId)} disabled={logsLoading}>
                                     {logsLoading ? "Cargando…" : "Actualizar"}
                                 </Button>
                             </div>
