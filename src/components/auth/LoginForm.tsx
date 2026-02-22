@@ -28,20 +28,34 @@ export default function LoginForm() {
 
     const onSubmit = async (values: z.infer<typeof loginSchema>) => {
         setLoading(true);
-        const result = await signIn("credentials", {
-            redirect: false,
-            email: values.email,
-            password: values.password,
-        });
+        try {
+            const result = await signIn("credentials", {
+                redirect: false,
+                email: values.email,
+                password: values.password,
+            });
 
-        setLoading(false);
+            if (!result) {
+                toast.error("Error de conexión. Verifica tu internet e intenta de nuevo.");
+                return;
+            }
 
-        if (result?.error) {
-            toast.error("Correo o contraseña incorrectos");
-        } else {
+            if (result.error) {
+                const message =
+                    result.error === "CredentialsSignin"
+                        ? "Correo o contraseña incorrectos"
+                        : result.error;
+                toast.error(message);
+                return;
+            }
+
             toast.success("¡Bienvenido de nuevo!");
             router.push("/dashboard");
             router.refresh();
+        } catch {
+            toast.error("Error inesperado. Intenta de nuevo más tarde.");
+        } finally {
+            setLoading(false);
         }
     };
 
