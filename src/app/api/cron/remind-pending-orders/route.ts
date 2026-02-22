@@ -4,9 +4,9 @@ import Order from "@/models/Order";
 import User from "@/models/User";
 import { sendPushToUsersIfEnabled } from "@/lib/push";
 
-const MAX_REMINDERS = 3;
-const FIRST_REMINDER_AFTER_MS = 5 * 60 * 1000; // 5 min
-const REMINDER_INTERVAL_MS = 10 * 60 * 1000; // 10 min entre recordatorios
+const MAX_REMINDERS = 5;
+const FIRST_REMINDER_AFTER_MS = 1 * 60 * 1000; // 1 min
+const REMINDER_INTERVAL_MS = 2 * 60 * 1000; // 2 min entre recordatorios
 
 function isAuthorized(req: Request): boolean {
     const secret = process.env.CRON_SECRET;
