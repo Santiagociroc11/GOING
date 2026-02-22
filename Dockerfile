@@ -27,6 +27,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+# .env base para que EasyPanel pueda inyectar las variables configuradas
+COPY .env.example .env
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
