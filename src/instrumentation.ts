@@ -26,13 +26,30 @@ export async function register() {
       const text = await res.text();
       const data = (() => {
         try {
-          return JSON.parse(text) as { remindersSent?: number; checked?: number };
+          return JSON.parse(text) as { ok?: boolean; remindersSent?: number; checked?: number; message?: string };
         } catch {
           return {};
         }
       })();
-      if (data.remindersSent && data.remindersSent > 0) {
-        log(`Cron: ${data.remindersSent} recordatorios enviados (${data.checked ?? 0} pedidos revisados)`);
+
+      if (!res.ok) {
+        console.error(
+          `[GOING] Cron: ${res.status} ${res.statusText}`,
+          res.status === 401 && !cronSecret
+            ? "- Define CRON_SECRET en Easypanel para autorizar el cron"
+            : res.status === 401
+              ? "- CRON_SECRET incorrecto o no enviado"
+              : "",
+          "|",
+          data.message || text.slice(0, 80)
+        );
+        return;
+      }
+
+      const sent = data.remindersSent ?? 0;
+      const checked = data.checked ?? 0;
+      if (sent > 0) {
+        log(`Cron: ${sent} recordatorios enviados (${checked} pedidos revisados)`);
       }
     } catch (e) {
       console.error("[GOING] Cron remind-pending:", e);

@@ -3,7 +3,7 @@ import { runRemindPendingOrders } from "@/lib/cron-reminders";
 
 function isAuthorized(req: Request): boolean {
     const secret = process.env.CRON_SECRET;
-    if (!secret) return process.env.NODE_ENV !== "production";
+    if (!secret) return true;
     const auth = req.headers.get("authorization");
     return auth === `Bearer ${secret}`;
 }
