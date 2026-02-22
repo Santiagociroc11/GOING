@@ -29,10 +29,12 @@ const serwist = new Serwist({
 });
 
 function logDelivery(deliveryId: string, status: string, error?: string) {
-    fetch(`${self.location.origin}/api/push/log-delivery`, {
+    const url = `${self.location.origin}/api/push/log-delivery`;
+    fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deliveryId, status, error }),
+        keepalive: true,
     }).catch(() => {});
 }
 
@@ -40,34 +42,36 @@ function logDelivery(deliveryId: string, status: string, error?: string) {
 self.addEventListener("push", (event) => {
     if (!event.data) return;
     event.waitUntil(
-        event.data
-            .json()
-            .catch(() => ({}))
-            .then((data: { title?: string; body?: string; url?: string; deliveryId?: string }) => {
-                const deliveryId = data.deliveryId;
-                if (deliveryId) logDelivery(deliveryId, "received");
+        (async () => {
+            let data: { title?: string; body?: string; url?: string; deliveryId?: string } = {};
+            try {
+                const raw = event.data.json();
+                data = (await Promise.resolve(raw)) as typeof data;
+            } catch {
+                /* ignore parse errors */
+            }
+            const deliveryId = data.deliveryId;
+            if (deliveryId) logDelivery(deliveryId, "received");
 
-                const title = data.title || "Going";
-                const baseUrl = self.location.origin;
-                const options: NotificationOptions = {
-                    body: data.body || "",
-                    icon: `${baseUrl}/icons/192`,
-                    badge: `${baseUrl}/icons/192`,
-                    data: { url: data.url || "/" },
-                    tag: `going-${Date.now()}`,
-                    requireInteraction: false,
-                    silent: false,
-                };
-                return self.registration
-                    .showNotification(title, options)
-                    .then(() => {
-                        if (deliveryId) logDelivery(deliveryId, "displayed");
-                    })
-                    .catch((err) => {
-                        if (deliveryId) logDelivery(deliveryId, "error", String(err?.message || err));
-                        throw err;
-                    });
-            })
+            const title = data.title || "Going";
+            const baseUrl = self.location.origin;
+            const options: NotificationOptions = {
+                body: data.body || "",
+                icon: `${baseUrl}/icons/192`,
+                badge: `${baseUrl}/icons/192`,
+                data: { url: data.url || "/" },
+                tag: `going-${Date.now()}`,
+                requireInteraction: false,
+                silent: false,
+            };
+            try {
+                await self.registration.showNotification(title, options);
+                if (deliveryId) logDelivery(deliveryId, "displayed");
+            } catch (err: unknown) {
+                if (deliveryId) logDelivery(deliveryId, "error", String((err as Error)?.message || err));
+                throw err;
+            }
+        })()
     );
 });
 

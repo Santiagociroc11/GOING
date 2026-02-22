@@ -114,6 +114,10 @@ export async function POST(req: Request) {
                 const msg = (err as Error)?.message;
                 pushLog(`   ✗ Falló: ${msg} (status: ${status})`);
                 results.push({ endpoint: endpointShort, ok: false, error: msg, statusCode: status, deliveryId });
+                if (status === 410 || status === 404) {
+                    await PushSubscription.deleteOne({ _id: sub._id });
+                    pushLog(`   → Suscripción eliminada (ya no válida)`);
+                }
                 await PushDeliveryLog.create({
                     deliveryId,
                     userId: targetUserId,

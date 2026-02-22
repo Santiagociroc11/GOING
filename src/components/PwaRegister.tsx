@@ -10,6 +10,7 @@ export function PwaRegister() {
         const register = async () => {
             try {
                 const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+                reg.update();
                 reg.addEventListener("updatefound", () => {
                     const newWorker = reg.installing;
                     if (!newWorker) return;
