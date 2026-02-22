@@ -13,7 +13,7 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
     output: "standalone",
-    serverExternalPackages: ["mongoose", "mongodb"],
+    serverExternalPackages: ["mongoose", "mongodb", "web-push"],
 };
 
 export default withSerwist(nextConfig);

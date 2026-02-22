@@ -25,7 +25,5 @@ const PushSubscriptionSchema: Schema = new Schema(
     { timestamps: true }
 );
 
-PushSubscriptionSchema.index({ userId: 1 });
-
 export default mongoose.models.PushSubscription ||
     mongoose.model<IPushSubscription>("PushSubscription", PushSubscriptionSchema);

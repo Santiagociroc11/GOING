@@ -40,6 +40,5 @@ const PushDeliveryLogSchema = new Schema(
 );
 
 PushDeliveryLogSchema.index({ userId: 1, sentAt: -1 });
-PushDeliveryLogSchema.index({ deliveryId: 1 });
 
 export default mongoose.models.PushDeliveryLog || mongoose.model<IPushDeliveryLog>("PushDeliveryLog", PushDeliveryLogSchema);
