@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Serwist
+public/sw.js
+public/swe-worker*.js
+
 # vercel
 .vercel
 

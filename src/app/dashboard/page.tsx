@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import DriverDashboardRedirect from "./DriverDashboardRedirect";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 export default async function DashboardPage() {
     const session = await getEffectiveSession();
@@ -26,6 +27,10 @@ export default async function DashboardPage() {
             <p className="text-base sm:text-lg text-gray-500">
                 Esto es lo que está pasando en tu cuenta de {role === "ADMIN" ? "administrador" : role === "BUSINESS" ? "negocio" : "conductor"} hoy.
             </p>
+
+            <div className="mt-4">
+                <PushNotificationToggle />
+            </div>
 
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
                 {role === "ADMIN" && (
