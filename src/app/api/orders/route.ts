@@ -40,8 +40,11 @@ export async function GET(req: Request) {
             query = {};
         }
 
-        // Sort by recent first
-        const orders = await Order.find(query).sort({ createdAt: -1 });
+        // Sort by recent first, populate driver for business/admin
+        const orders = await Order.find(query)
+            .populate("driverId", "name email driverDetails")
+            .sort({ createdAt: -1 })
+            .lean();
 
         return NextResponse.json(orders);
     } catch (error) {

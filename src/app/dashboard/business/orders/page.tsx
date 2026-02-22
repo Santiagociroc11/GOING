@@ -5,7 +5,7 @@ import { fetchWithToast } from "@/lib/toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, Eye } from "lucide-react";
+import { RefreshCcw, Truck, Package } from "lucide-react";
 
 type Order = {
     _id: string;
@@ -15,6 +15,7 @@ type Order = {
     details: string;
     pickupInfo: { address: string };
     dropoffInfo: { address: string };
+    driverId?: { name: string; driverDetails?: { vehicleType?: string } } | null;
     createdAt: string;
 };
 
@@ -31,6 +32,8 @@ export default function BusinessOrdersPage() {
 
     useEffect(() => {
         fetchOrders();
+        const interval = setInterval(fetchOrders, 30000); // Auto-refresh cada 30s
+        return () => clearInterval(interval);
     }, []);
 
     const getStatusBadge = (status: string) => {
@@ -44,50 +47,109 @@ export default function BusinessOrdersPage() {
         }
     };
 
+    const activeOrders = orders.filter((o) => ["PENDING", "ACCEPTED", "PICKED_UP"].includes(o.status));
+    const completedOrders = orders.filter((o) => ["DELIVERED", "CANCELLED"].includes(o.status));
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Historial de Pedidos</h2>
-                    <p className="text-gray-500">Mira y rastrea todas tus solicitudes de entrega.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Mis Pedidos</h2>
+                    <p className="text-gray-500">Rastrea tus entregas. Se actualiza automáticamente cada 30 segundos.</p>
                 </div>
-                <Button variant="outline" onClick={fetchOrders} className="hover:text-orange-600 border-orange-200">
+                <Button variant="outline" onClick={fetchOrders} disabled={loading} className="hover:text-orange-600 border-orange-200">
                     <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
                 </Button>
             </div>
 
-            <div className="border rounded-md bg-white shadow-sm overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-gray-50/50">
-                            <TableHead>Fecha</TableHead>
-                            <TableHead>Recogida</TableHead>
-                            <TableHead>Entrega</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead className="text-right">Precio</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {orders.length === 0 && !loading && (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-32 text-center text-gray-500">
-                                    Aún no has creado ningún pedido.
-                                </TableCell>
+            {activeOrders.length > 0 && (
+                <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                        <Package className="h-5 w-5 text-orange-600" />
+                        En curso ({activeOrders.length})
+                    </h3>
+                    <div className="border rounded-lg bg-white overflow-hidden">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-orange-50/50">
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Recogida</TableHead>
+                                    <TableHead>Entrega</TableHead>
+                                    <TableHead>Domiciliario</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead className="text-right">Precio</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {activeOrders.map((order) => (
+                                    <TableRow key={order._id} className="bg-orange-50/20">
+                                        <TableCell className="font-medium whitespace-nowrap">
+                                            {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                        </TableCell>
+                                        <TableCell className="max-w-[180px] truncate">{order.pickupInfo.address}</TableCell>
+                                        <TableCell className="max-w-[180px] truncate">{order.dropoffInfo.address}</TableCell>
+                                        <TableCell>
+                                            {order.driverId ? (
+                                                <span className="flex items-center gap-1 text-sm">
+                                                    <Truck className="h-4 w-4 text-orange-500" />
+                                                    {order.driverId.name}
+                                                    {order.driverId.driverDetails?.vehicleType && (
+                                                        <span className="text-gray-500">({order.driverId.driverDetails.vehicleType})</span>
+                                                    )}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400 text-sm">Esperando...</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                                        <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            )}
+
+            <div>
+                <h3 className="text-lg font-semibold mb-3">Historial</h3>
+                <div className="border rounded-lg bg-white overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-gray-50/50">
+                                <TableHead>Fecha</TableHead>
+                                <TableHead>Recogida</TableHead>
+                                <TableHead>Entrega</TableHead>
+                                <TableHead>Domiciliario</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead className="text-right">Precio</TableHead>
                             </TableRow>
-                        )}
-                        {orders.map((order) => (
-                            <TableRow key={order._id}>
-                                <TableCell className="font-medium whitespace-nowrap">
-                                    {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </TableCell>
-                                <TableCell className="max-w-[200px] truncate">{order.pickupInfo.address}</TableCell>
-                                <TableCell className="max-w-[200px] truncate">{order.dropoffInfo.address}</TableCell>
-                                <TableCell>{getStatusBadge(order.status)}</TableCell>
-                                <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {orders.length === 0 && !loading && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-32 text-center text-gray-500">
+                                        Aún no has creado ningún pedido.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {completedOrders.map((order) => (
+                                <TableRow key={order._id}>
+                                    <TableCell className="font-medium whitespace-nowrap text-gray-600">
+                                        {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    </TableCell>
+                                    <TableCell className="max-w-[180px] truncate">{order.pickupInfo.address}</TableCell>
+                                    <TableCell className="max-w-[180px] truncate">{order.dropoffInfo.address}</TableCell>
+                                    <TableCell className="text-gray-500 text-sm">
+                                        {order.driverId?.name || "—"}
+                                    </TableCell>
+                                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                                    <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
     );
