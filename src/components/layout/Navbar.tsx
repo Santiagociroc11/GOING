@@ -76,7 +76,15 @@ export default function Navbar({ effectiveSession }: { effectiveSession?: Effect
                                     {(displaySession.user as any)?.role}
                                 </span>
                             </span>
-                            <Button variant="ghost" size="icon" onClick={() => signOut({ callbackUrl: "/login" })} title="Cerrar Sesión">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={async () => {
+                                    await signOut({ redirect: false });
+                                    window.location.href = "/login";
+                                }}
+                                title="Cerrar Sesión"
+                            >
                                 <LogOut className="h-5 w-5 text-red-500" />
                             </Button>
                         </div>
