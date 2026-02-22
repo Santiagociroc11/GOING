@@ -40,12 +40,13 @@ function logDelivery(deliveryId: string, status: string, error?: string) {
 
 // Registrar push ANTES de Serwist para evitar que intercepte el evento
 self.addEventListener("push", (event) => {
-    if (!event.data) return;
+    const payload = event.data;
+    if (!payload) return;
     event.waitUntil(
         (async () => {
             let data: { title?: string; body?: string; url?: string; deliveryId?: string } = {};
             try {
-                const raw = event.data.json();
+                const raw = payload.json();
                 data = (await Promise.resolve(raw)) as typeof data;
             } catch {
                 /* ignore parse errors */
