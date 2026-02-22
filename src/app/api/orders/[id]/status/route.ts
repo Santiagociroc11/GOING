@@ -3,6 +3,12 @@ import { getEffectiveSession } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
 import { sendPushToUser } from "@/lib/push";
+import {
+    creditDriverBalance,
+    refundBusinessBalance,
+    wasDriverPaid,
+    wasOrderRefunded,
+} from "@/lib/wallet";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -70,6 +76,20 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         await order.save();
+
+        // Flujo de saldo: acreditar domiciliario al entregar, devolver al negocio al cancelar
+        if (status === "DELIVERED" && order.driverId) {
+            const alreadyPaid = await wasDriverPaid(order._id);
+            if (!alreadyPaid) {
+                await creditDriverBalance(order.driverId, order.price, order._id);
+            }
+        }
+        if (status === "CANCELLED") {
+            const alreadyRefunded = await wasOrderRefunded(order._id);
+            if (!alreadyRefunded) {
+                await refundBusinessBalance(order.businessId, order.price, order._id);
+            }
+        }
 
         const shortId = order._id.toString().slice(-6).toUpperCase();
         if (status === "PICKED_UP" && order.businessId) {

@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { toast, mutateWithToast } from "@/lib/toast";
+import { toast, mutateWithToast, fetchWithToast } from "@/lib/toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Package } from "lucide-react";
+import { Package, Wallet } from "lucide-react";
 
 // Simula coordenadas para MVP sin API de mapas. Usa pickup y dropoff separados ~5km
 // para que el precio sea consistente (base + ~5km * precio). En producción usar geocoding.
@@ -33,11 +33,17 @@ const orderSchema = z.object({
     dropoffContactName: z.string().min(2, "Se requiere un nombre de contacto"),
     dropoffContactPhone: z.string().min(6, "Se requiere un teléfono"),
     details: z.string().min(3, "Por favor describe el paquete"),
-});
+    paymentMethod: z.enum(["PREPAID", "COD"]),
+    productValue: z.number().optional(),
+}).refine((data) => {
+    if (data.paymentMethod === "COD") return data.productValue != null && data.productValue >= 0;
+    return true;
+}, { message: "Para recaudo contraentrega indica el valor del producto", path: ["productValue"] });
 
 export default function NewOrderPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [balance, setBalance] = useState<number | null>(null);
 
     const form = useForm<z.infer<typeof orderSchema>>({
         resolver: zodResolver(orderSchema),
@@ -45,13 +51,25 @@ export default function NewOrderPage() {
             pickupAddress: "", pickupContactName: "", pickupContactPhone: "",
             dropoffAddress: "", dropoffContactName: "", dropoffContactPhone: "",
             details: "",
+            paymentMethod: "PREPAID",
+            productValue: undefined,
         },
     });
+
+    const isCod = form.watch("paymentMethod") === "COD";
+
+    useEffect(() => {
+        fetchWithToast<{ balance: number }>("/api/wallet/balance").then(({ data }) => {
+            if (data) setBalance(data.balance);
+        });
+    }, []);
 
     const onSubmit = async (values: z.infer<typeof orderSchema>) => {
         setLoading(true);
         const payload = {
             details: values.details,
+            paymentMethod: values.paymentMethod,
+            productValue: values.paymentMethod === "COD" ? values.productValue : undefined,
             pickupInfo: {
                 address: values.pickupAddress,
                 contactName: values.pickupContactName,
@@ -79,14 +97,23 @@ export default function NewOrderPage() {
         <div className="max-w-3xl mx-auto py-6">
             <Card className="shadow-xl border-0 border-t-4 border-t-orange-600">
                 <CardHeader>
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-orange-100 rounded-lg text-orange-600">
-                            <Package className="h-6 w-6" />
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-orange-100 rounded-lg text-orange-600">
+                                <Package className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-2xl font-bold">Nueva Solicitud de Envío</CardTitle>
+                                <CardDescription>Completa los detalles para despachar un domiciliario.</CardDescription>
+                            </div>
                         </div>
-                        <div>
-                            <CardTitle className="text-2xl font-bold">Nueva Solicitud de Envío</CardTitle>
-                            <CardDescription>Completa los detalles para despachar un domiciliario.</CardDescription>
-                        </div>
+                        {balance !== null && (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                                <Wallet className="h-5 w-5 text-emerald-600" />
+                                <span className="font-semibold text-emerald-700">${balance.toLocaleString()}</span>
+                                <span className="text-sm text-emerald-600">saldo</span>
+                            </div>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -195,6 +222,55 @@ export default function NewOrderPage() {
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+
+                            {/* Payment / COD */}
+                            <div className="space-y-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
+                                <h3 className="font-semibold text-lg text-gray-800">Forma de pago</h3>
+                                <FormField
+                                    control={form.control}
+                                    name="paymentMethod"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                            <div className="space-y-0.5 flex-1">
+                                                <FormLabel className="text-base">Recaudo contraentrega (COD)</FormLabel>
+                                                <p className="text-sm text-gray-500">
+                                                    El domiciliario recaudará el valor del producto en efectivo al entregar.
+                                                </p>
+                                            </div>
+                                            <FormControl>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={field.value === "COD"}
+                                                    onChange={(e) => field.onChange(e.target.checked ? "COD" : "PREPAID")}
+                                                    className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                {isCod && (
+                                    <FormField
+                                        control={form.control}
+                                        name="productValue"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Valor del producto a recaudar ($)</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="1"
+                                                        placeholder="Ej: 25000"
+                                                        {...field}
+                                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
 
                             <div className="pt-4 border-t">

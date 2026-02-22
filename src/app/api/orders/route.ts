@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
 import Rate from "@/models/Rate";
 import User from "@/models/User";
+import { deductBusinessBalance } from "@/lib/wallet";
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371; // Radius of the earth in km
@@ -60,10 +61,17 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { pickupInfo, dropoffInfo, details } = body;
+        const { pickupInfo, dropoffInfo, details, paymentMethod = "PREPAID", productValue } = body;
 
         if (!pickupInfo || !dropoffInfo || !details) {
             return NextResponse.json({ message: "Missing order details" }, { status: 400 });
+        }
+
+        if (paymentMethod === "COD" && (productValue == null || productValue < 0)) {
+            return NextResponse.json(
+                { message: "Para recaudo contraentrega debes indicar el valor del producto" },
+                { status: 400 }
+            );
         }
 
         await dbConnect();
@@ -89,7 +97,7 @@ export async function POST(req: Request) {
             dropoffInfo.coordinates[1], dropoffInfo.coordinates[0]
         );
 
-        let price = rate.basePrice + (distanceKm * rate.pricePerKm);
+        const price = Number((rate.basePrice + (distanceKm * rate.pricePerKm)).toFixed(2));
 
         const newOrder = new Order({
             businessId: userId,
@@ -103,9 +111,17 @@ export async function POST(req: Request) {
                 ...dropoffInfo,
                 coordinates: { type: "Point", coordinates: dropoffInfo.coordinates }
             },
-            price: Number(price.toFixed(2)),
-            details
+            price,
+            details,
+            paymentMethod: paymentMethod === "COD" ? "COD" : "PREPAID",
+            productValue: paymentMethod === "COD" ? Number(productValue) : undefined,
         });
+
+        // Validar y deducir saldo (prepago) antes de guardar
+        const deductResult = await deductBusinessBalance(userId, price, newOrder._id);
+        if (!deductResult.ok) {
+            return NextResponse.json({ message: deductResult.message }, { status: 400 });
+        }
 
         await newOrder.save();
         return NextResponse.json(newOrder, { status: 201 });

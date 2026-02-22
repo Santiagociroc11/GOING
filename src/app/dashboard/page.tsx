@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import DriverDashboardRedirect from "./DriverDashboardRedirect";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { BalanceCard } from "@/components/BalanceCard";
 
 export default async function DashboardPage() {
     const session = await getEffectiveSession();
@@ -106,6 +107,7 @@ export default async function DashboardPage() {
 
                 {role === "BUSINESS" && (
                     <>
+                        <BalanceCard />
                         <Card className="hover:shadow-lg transition-shadow">
                             <CardHeader>
                                 <CardTitle>Nuevo Envío</CardTitle>

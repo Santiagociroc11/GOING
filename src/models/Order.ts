@@ -25,6 +25,8 @@ export interface IOrder extends Document {
     };
     price: number;
     details: string;
+    paymentMethod: "PREPAID" | "COD";
+    productValue?: number; // Valor del producto a recaudar (solo cuando paymentMethod === "COD")
     createdAt: Date;
     updatedAt: Date;
 }
@@ -60,6 +62,8 @@ const OrderSchema: Schema = new Schema(
         },
         price: { type: Number, required: true },
         details: { type: String, required: true },
+        paymentMethod: { type: String, enum: ["PREPAID", "COD"], default: "PREPAID" },
+        productValue: { type: Number },
     },
     { timestamps: true }
 );

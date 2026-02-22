@@ -7,6 +7,7 @@ export interface IUser extends Document {
     role: "BUSINESS" | "DRIVER" | "ADMIN";
     city: string;
     active: boolean;
+    balance: number; // Saldo para negocio (prepago) y domiciliario (acumulado)
     businessDetails?: {
         companyName: string;
         taxId?: string;
@@ -27,6 +28,7 @@ const UserSchema: Schema = new Schema(
         role: { type: String, enum: ["BUSINESS", "DRIVER", "ADMIN"], required: true },
         city: { type: String, required: true, index: true },
         active: { type: Boolean, default: true },
+        balance: { type: Number, default: 0 },
         businessDetails: {
             companyName: String,
             taxId: String,

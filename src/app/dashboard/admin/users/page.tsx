@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, UserPlus, Users, UserCog } from "lucide-react";
+import { RefreshCcw, UserPlus, Users, UserCog, Wallet } from "lucide-react";
 
 type User = {
     _id: string;
@@ -18,6 +18,7 @@ type User = {
     role: string;
     city: string;
     active: boolean;
+    balance?: number;
     createdAt: string;
     businessDetails?: { companyName?: string };
     driverDetails?: { vehicleType?: string; licensePlate?: string };
@@ -38,6 +39,11 @@ export default function AdminUsersPage() {
     const [newVehicleType, setNewVehicleType] = useState("");
     const [newLicensePlate, setNewLicensePlate] = useState("");
     const [storePlainPassword, setStorePlainPassword] = useState(false);
+
+    const [rechargeUserId, setRechargeUserId] = useState<string | null>(null);
+    const [rechargeAmount, setRechargeAmount] = useState("");
+    const [rechargeNote, setRechargeNote] = useState("");
+    const [recharging, setRecharging] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -92,6 +98,30 @@ export default function AdminUsersPage() {
         }
     };
 
+    const handleRecharge = async () => {
+        if (!rechargeUserId || !rechargeAmount.trim()) {
+            toast.error("Ingresa el monto a recargar");
+            return;
+        }
+        const amount = parseFloat(rechargeAmount);
+        if (isNaN(amount) || amount <= 0) {
+            toast.error("El monto debe ser mayor a 0");
+            return;
+        }
+        setRecharging(true);
+        const { ok } = await mutateWithToast("/api/admin/recharge", {
+            method: "POST",
+            body: { businessId: rechargeUserId, amount, note: rechargeNote.trim() || undefined },
+        });
+        setRecharging(false);
+        if (ok) {
+            setRechargeUserId(null);
+            setRechargeAmount("");
+            setRechargeNote("");
+            fetchUsers();
+        }
+    };
+
     const handleImpersonate = async (userId: string) => {
         const res = await fetch("/api/admin/impersonate", {
             method: "POST",
@@ -103,6 +133,12 @@ export default function AdminUsersPage() {
         } else {
             toast.error("No se pudo suplantar al usuario");
         }
+    };
+
+    const openRechargeDialog = (user: User) => {
+        setRechargeUserId(user._id);
+        setRechargeAmount("");
+        setRechargeNote("");
     };
 
     const getRoleBadge = (role: string) => {
@@ -219,6 +255,46 @@ export default function AdminUsersPage() {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
+
+                    <Dialog open={!!rechargeUserId} onOpenChange={(open) => { if (!open) setRechargeUserId(null); }}>
+                        <DialogContent className="sm:max-w-[400px]">
+                            <DialogHeader>
+                                <DialogTitle>Recargar saldo</DialogTitle>
+                                <DialogDescription>
+                                    Recarga saldo al negocio para que pueda crear pedidos. El sistema funciona prepago.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Monto ($)</Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        step="0.01"
+                                        value={rechargeAmount}
+                                        onChange={(e) => setRechargeAmount(e.target.value)}
+                                        className="col-span-3"
+                                        placeholder="Ej: 50000"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Nota</Label>
+                                    <Input
+                                        value={rechargeNote}
+                                        onChange={(e) => setRechargeNote(e.target.value)}
+                                        className="col-span-3"
+                                        placeholder="Opcional"
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setRechargeUserId(null)}>Cancelar</Button>
+                                <Button onClick={handleRecharge} disabled={recharging} className="bg-emerald-600 hover:bg-emerald-700">
+                                    {recharging ? "Recargando..." : "Recargar"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
@@ -236,20 +312,35 @@ export default function AdminUsersPage() {
                             <p className="text-sm text-gray-600 truncate">{user.email}</p>
                             <div className="flex justify-between items-center pt-2">
                                 <span className="text-xs text-gray-500">{user.city}</span>
+                                {(user.role === "BUSINESS" || user.role === "DRIVER") && (
+                                    <span className="text-sm font-semibold text-emerald-600">${(user.balance ?? 0).toLocaleString()}</span>
+                                )}
                                 <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-100 text-green-700 text-xs" : "text-xs"}>
                                     {user.active ? "Activo" : "Inactivo"}
                                 </Badge>
                             </div>
-                            {user.role !== "ADMIN" && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleImpersonate(user._id)}
-                                    className="text-orange-600 hover:text-orange-700 w-full justify-start mt-2"
-                                >
-                                    <UserCog className="h-4 w-4 mr-2" /> Suplantar
-                                </Button>
-                            )}
+                            <div className="flex gap-2 mt-2">
+                                {user.role === "BUSINESS" && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openRechargeDialog(user)}
+                                        className="text-emerald-600 hover:text-emerald-700 flex-1 justify-start"
+                                    >
+                                        <Wallet className="h-4 w-4 mr-2" /> Recargar
+                                    </Button>
+                                )}
+                                {user.role !== "ADMIN" && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleImpersonate(user._id)}
+                                        className="text-orange-600 hover:text-orange-700 flex-1 justify-start"
+                                    >
+                                        <UserCog className="h-4 w-4 mr-2" /> Suplantar
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -261,6 +352,7 @@ export default function AdminUsersPage() {
                             <TableHead>Email</TableHead>
                             <TableHead>Rol</TableHead>
                             <TableHead>Ciudad</TableHead>
+                            <TableHead>Saldo</TableHead>
                             <TableHead>Estado</TableHead>
                             <TableHead>Registro</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
@@ -269,7 +361,7 @@ export default function AdminUsersPage() {
                     <TableBody>
                         {users.length === 0 && !loading && (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center text-gray-500">
+                                <TableCell colSpan={8} className="h-24 text-center text-gray-500">
                                     No hay usuarios registrados.
                                 </TableCell>
                             </TableRow>
@@ -281,6 +373,14 @@ export default function AdminUsersPage() {
                                 <TableCell>{getRoleBadge(user.role)}</TableCell>
                                 <TableCell>{user.city}</TableCell>
                                 <TableCell>
+                                    {(user.role === "BUSINESS" || user.role === "DRIVER") && (
+                                        <span className="font-semibold text-emerald-600">${(user.balance ?? 0).toLocaleString()}</span>
+                                    )}
+                                    {user.role === "ADMIN" && (
+                                        <span className="text-gray-400">—</span>
+                                    )}
+                                </TableCell>
+                                <TableCell>
                                     <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-100 text-green-700" : ""}>
                                         {user.active ? "Activo" : "Inactivo"}
                                     </Badge>
@@ -289,17 +389,30 @@ export default function AdminUsersPage() {
                                     {new Date(user.createdAt).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    {user.role !== "ADMIN" && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleImpersonate(user._id)}
-                                            title="Ver como este usuario"
-                                            className="text-orange-600 hover:text-orange-700"
-                                        >
-                                            <UserCog className="h-4 w-4" /> Suplantar
-                                        </Button>
-                                    )}
+                                    <div className="flex justify-end gap-1">
+                                        {user.role === "BUSINESS" && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openRechargeDialog(user)}
+                                                title="Recargar saldo"
+                                                className="text-emerald-600 hover:text-emerald-700"
+                                            >
+                                                <Wallet className="h-4 w-4" /> Recargar
+                                            </Button>
+                                        )}
+                                        {user.role !== "ADMIN" && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleImpersonate(user._id)}
+                                                title="Ver como este usuario"
+                                                className="text-orange-600 hover:text-orange-700"
+                                            >
+                                                <UserCog className="h-4 w-4" /> Suplantar
+                                            </Button>
+                                        )}
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}

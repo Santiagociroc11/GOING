@@ -12,6 +12,8 @@ type Order = {
     price: number;
     status: string;
     details: string;
+    paymentMethod?: "PREPAID" | "COD";
+    productValue?: number;
     pickupInfo: { address: string };
     dropoffInfo: { address: string };
     createdAt: string;
@@ -107,6 +109,11 @@ export default function DriverFeedPage() {
                             <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-600 mt-2">
                                 <span className="font-semibold text-gray-900">Detalles: </span>{order.details}
                             </div>
+                            {order.paymentMethod === "COD" && order.productValue != null && (
+                                <div className="bg-amber-50 p-3 rounded-md text-sm text-amber-800 border border-amber-200">
+                                    <span className="font-semibold">Recaudo contraentrega:</span> Cobra ${order.productValue.toLocaleString()} al cliente.
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter className="pt-4 border-t">
                             <Button

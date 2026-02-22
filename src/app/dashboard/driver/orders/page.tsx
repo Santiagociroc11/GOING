@@ -13,6 +13,8 @@ type Order = {
     price: number;
     status: string;
     details: string;
+    paymentMethod?: "PREPAID" | "COD";
+    productValue?: number;
     pickupInfo: { address: string; contactName: string; contactPhone: string; };
     dropoffInfo: { address: string; contactName: string; contactPhone: string; };
     createdAt: string;
@@ -21,6 +23,7 @@ type Order = {
 export default function DriverOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [balance, setBalance] = useState<number | null>(null);
 
     const fetchOrders = async () => {
         setLoading(true);
@@ -31,6 +34,12 @@ export default function DriverOrdersPage() {
 
     useEffect(() => {
         fetchOrders();
+    }, []);
+
+    useEffect(() => {
+        fetchWithToast<{ balance: number }>("/api/wallet/balance").then(({ data }) => {
+            if (data) setBalance(data.balance);
+        });
     }, []);
 
     const updateStatus = async (orderId: string, newStatus: string) => {
@@ -49,9 +58,17 @@ export default function DriverOrdersPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
-            <div>
-                <h2 className="text-3xl font-extrabold tracking-tight">Mis Entregas</h2>
-                <p className="text-gray-500">Gestiona tus rutas activas y mira tu historial.</p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Mis Entregas</h2>
+                    <p className="text-gray-500">Gestiona tus rutas activas y mira tu historial.</p>
+                </div>
+                {balance !== null && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <span className="text-sm text-emerald-600">Saldo acumulado:</span>
+                        <span className="font-bold text-emerald-700">${balance.toLocaleString()}</span>
+                    </div>
+                )}
             </div>
 
             <div>
@@ -101,6 +118,11 @@ export default function DriverOrdersPage() {
                                         <span className="font-bold flex items-center gap-2 mb-1"><PackageCheck className="h-4 w-4" /> Detalles del Paquete</span>
                                         {order.details}
                                     </div>
+                                    {order.paymentMethod === "COD" && order.productValue != null && (
+                                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-800">
+                                            <span className="font-bold">Recaudo contraentrega:</span> Cobra <span className="font-bold">${order.productValue.toLocaleString()}</span> al cliente al entregar.
+                                        </div>
+                                    )}
                                 </CardContent>
                                 <CardFooter className="bg-gray-50 border-t p-4 flex gap-4">
                                     {order.status === "ACCEPTED" && (
