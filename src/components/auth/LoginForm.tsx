@@ -41,11 +41,17 @@ export default function LoginForm() {
             }
 
             if (result.error) {
-                const message =
-                    result.error === "CredentialsSignin"
-                        ? "Correo o contraseña incorrectos"
-                        : result.error;
-                toast.error(message);
+                const err = String(result.error).toLowerCase();
+                const mensaje =
+                    err.includes("credential") ||
+                    err.includes("authentication failed") ||
+                    err.includes("invalid") ||
+                    err.includes("incorrect")
+                        ? "Correo o contraseña incorrectos. Verifica tus datos."
+                        : err.includes("desactivada") || err.includes("disabled")
+                          ? result.error
+                          : "No se pudo iniciar sesión. Verifica tu correo y contraseña.";
+                toast.error(mensaje);
                 return;
             }
 
