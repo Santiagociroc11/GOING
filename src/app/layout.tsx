@@ -4,6 +4,7 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/PwaRegister";
 import { NavProgress } from "@/components/NavProgress";
+import { IosPushBanner } from "@/components/IosPushBanner";
 
 // System fonts: no network fetch during build (ideal for Docker/CI)
 const fontVariables = {
@@ -55,6 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
         <link
           rel="apple-touch-startup-image"
           href="/splash/1284x2778"
@@ -82,6 +84,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <NavProgress />
+          <IosPushBanner />
           {children}
           <Toaster />
           <PwaRegister />

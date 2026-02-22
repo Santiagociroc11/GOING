@@ -5,6 +5,11 @@ import NotificationSettings from "@/models/NotificationSettings";
 import InAppNotification from "@/models/InAppNotification";
 import type { NotificationType } from "@/models/NotificationSettings";
 
+function toBase64UrlSafe(value: string): string {
+    if (!value) return value;
+    return value.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 const vapidPublic = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT || "mailto:support@going.app";
@@ -99,13 +104,14 @@ export async function sendPushToUser(
 
     for (const sub of subs) {
         try {
+            const keys = {
+                p256dh: toBase64UrlSafe(sub.keys.p256dh),
+                auth: toBase64UrlSafe(sub.keys.auth),
+            };
             await webPush.sendNotification(
                 {
                     endpoint: sub.endpoint,
-                    keys: {
-                        p256dh: sub.keys.p256dh,
-                        auth: sub.keys.auth,
-                    },
+                    keys,
                 },
                 message,
                 { TTL: 86400 }
@@ -114,6 +120,9 @@ export async function sendPushToUser(
         } catch (err: unknown) {
             failed++;
             const status = (err as { statusCode?: number })?.statusCode;
+            if (process.env.NODE_ENV === "development") {
+                console.error("[Push] Send failed:", (err as Error)?.message, "status:", status, "endpoint:", sub.endpoint?.slice(0, 50));
+            }
             if (status === 410 || status === 404) {
                 await PushSubscription.deleteOne({ _id: sub._id });
             }

@@ -39,12 +39,11 @@ export function usePushNotifications() {
                 applicationServerKey: new Uint8Array(keyBytes) as BufferSource,
             });
 
+            const p256dh = toBase64Url(sub.getKey("p256dh")!);
+            const auth = toBase64Url(sub.getKey("auth")!);
             const payload = {
                 endpoint: sub.endpoint,
-                keys: {
-                    p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("p256dh")!))),
-                    auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey("auth")!))),
-                },
+                keys: { p256dh, auth },
             };
 
             const res = await fetch("/api/push/subscribe", {
@@ -110,6 +109,13 @@ export function usePushNotifications() {
     }, []);
 
     return { state, loading, subscribe, unsubscribe, checkState };
+}
+
+function toBase64Url(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {

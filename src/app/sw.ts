@@ -38,11 +38,15 @@ self.addEventListener("push", (event) => {
             .catch(() => ({}))
             .then((data: { title?: string; body?: string; url?: string }) => {
                 const title = data.title || "Going";
+                const baseUrl = self.location.origin;
                 const options: NotificationOptions = {
                     body: data.body || "",
-                    icon: "/icons/192",
-                    badge: "/icons/192",
+                    icon: `${baseUrl}/icon`,
+                    badge: `${baseUrl}/icon`,
                     data: { url: data.url || "/" },
+                    tag: `going-${Date.now()}`,
+                    requireInteraction: false,
+                    silent: false,
                 };
                 return self.registration.showNotification(title, options);
             })
