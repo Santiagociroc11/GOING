@@ -7,8 +7,22 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCcw, Bell, Building2, Truck, Send } from "lucide-react";
+import { RefreshCcw, Bell, Building2, Truck, Send, FileText } from "lucide-react";
 import type { NotificationType } from "@/models/NotificationSettings";
+
+type PushLogEntry = {
+    deliveryId: string;
+    userId: string;
+    type?: string;
+    payload: { title: string; body?: string };
+    status: string;
+    errorMessage?: string;
+    sentAt: string;
+    receivedAt?: string;
+    displayedAt?: string;
+    errorAt?: string;
+    user?: { name: string; email: string; role: string };
+};
 
 const NOTIFICATION_CONFIG: { key: NotificationType; label: string; description: string; role: "business" | "driver" }[] = [
     { key: "businessOrderAccepted", label: "Pedido aceptado", description: "Cuando un domiciliario toma el pedido", role: "business" },
@@ -25,9 +39,12 @@ export default function AdminNotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [testUserId, setTestUserId] = useState<string>("");
+    const [logsUserId, setLogsUserId] = useState<string>("");
     const [users, setUsers] = useState<{ _id: string; name: string; email: string; role: string }[]>([]);
     const [testLoading, setTestLoading] = useState(false);
-    const [testResult, setTestResult] = useState<{ ok: boolean; logs?: string[]; error?: string; summary?: { sent: number; failed: number; total: number }; results?: { ok: boolean; error?: string }[] } | null>(null);
+    const [testResult, setTestResult] = useState<{ ok: boolean; targetUserId?: string; logs?: string[]; error?: string; summary?: { sent: number; failed: number; total: number }; results?: { ok: boolean; error?: string; deliveryId?: string }[] } | null>(null);
+    const [pushLogs, setPushLogs] = useState<PushLogEntry[]>([]);
+    const [logsLoading, setLogsLoading] = useState(false);
 
     const fetchSettings = async () => {
         setLoading(true);
@@ -46,6 +63,10 @@ export default function AdminNotificationsPage() {
         );
     }, []);
 
+    useEffect(() => {
+        fetchPushLogs();
+    }, []);
+
     const handleToggle = async (key: string, value: boolean) => {
         setSaving(key);
         const { data, error } = await mutateWithToast("/api/admin/notification-settings", {
@@ -54,6 +75,14 @@ export default function AdminNotificationsPage() {
         });
         setSaving(null);
         if (!error && data && typeof data === "object") setSettings(data as Record<string, boolean>);
+    };
+
+    const fetchPushLogs = async (uid?: string) => {
+        setLogsLoading(true);
+        const url = uid ? `/api/admin/push-logs?userId=${uid}&limit=30` : "/api/admin/push-logs?limit=30";
+        const { data } = await fetchWithToast<{ logs: PushLogEntry[] }>(url);
+        if (data?.logs) setPushLogs(data.logs);
+        setLogsLoading(false);
     };
 
     const handleTestPush = async (useCurrentUser?: boolean, useMyself?: boolean) => {
@@ -74,7 +103,13 @@ export default function AdminNotificationsPage() {
             body,
         });
         setTestLoading(false);
-        if (data && typeof data === "object") setTestResult(data as typeof testResult);
+        if (data && typeof data === "object") {
+            const res = data as typeof testResult;
+            setTestResult(res);
+            const uid = testUserId || res.targetUserId || "";
+            setLogsUserId(uid);
+            fetchPushLogs(uid || undefined);
+        }
     };
 
     const businessItems = NOTIFICATION_CONFIG.filter((c) => c.role === "business");
@@ -220,6 +255,86 @@ export default function AdminNotificationsPage() {
                                     )}
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="sm:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-orange-600" />
+                                Logs de push (trazabilidad end-to-end)
+                            </CardTitle>
+                            <CardDescription>
+                                Recorrido de cada notificación: enviado → recibido por SW → mostrada. Filtra por usuario para ver el camino completo.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex gap-2">
+                                <Select value={logsUserId} onValueChange={(v) => { setLogsUserId(v); fetchPushLogs(v || undefined); }}>
+                                    <SelectTrigger className="w-[240px]">
+                                        <SelectValue placeholder="Todos los usuarios" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">Todos</SelectItem>
+                                        {users.map((u) => (
+                                            <SelectItem key={String(u._id)} value={String(u._id)}>
+                                                {u.name} ({u.email})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="outline" size="sm" onClick={() => fetchPushLogs(logsUserId || undefined)} disabled={logsLoading}>
+                                    {logsLoading ? "Cargando…" : "Actualizar"}
+                                </Button>
+                            </div>
+                            <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="sticky top-0 bg-white border-b">
+                                        <tr>
+                                            <th className="text-left py-2 px-2">Usuario</th>
+                                            <th className="text-left py-2 px-2">Título</th>
+                                            <th className="text-left py-2 px-2">Tipo</th>
+                                            <th className="text-left py-2 px-2">Estado</th>
+                                            <th className="text-left py-2 px-2">Enviado</th>
+                                            <th className="text-left py-2 px-2">Recibido</th>
+                                            <th className="text-left py-2 px-2">Mostrado</th>
+                                            <th className="text-left py-2 px-2">Error</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pushLogs.length === 0 && !logsLoading && (
+                                            <tr><td colSpan={8} className="py-4 text-center text-gray-500">Sin logs. Envía una prueba o espera un pedido.</td></tr>
+                                        )}
+                                        {pushLogs.map((log) => (
+                                            <tr key={log.deliveryId} className="border-b hover:bg-gray-50">
+                                                <td className="py-2 px-2">
+                                                    {log.user ? `${log.user.name} (${log.user.role})` : log.userId.slice(-8)}
+                                                </td>
+                                                <td className="py-2 px-2 truncate max-w-[120px]">{log.payload?.title}</td>
+                                                <td className="py-2 px-2">{log.type || "—"}</td>
+                                                <td className="py-2 px-2">
+                                                    <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                                        log.status === "displayed" ? "bg-green-100 text-green-800" :
+                                                        log.status === "received" ? "bg-blue-100 text-blue-800" :
+                                                        log.status === "sent" ? "bg-gray-100 text-gray-800" :
+                                                        log.status === "failed" ? "bg-red-100 text-red-800" :
+                                                        "bg-amber-100 text-amber-800"
+                                                    }`}>
+                                                        {log.status}
+                                                    </span>
+                                                </td>
+                                                <td className="py-2 px-2 text-xs">{log.sentAt ? new Date(log.sentAt).toLocaleString() : "—"}</td>
+                                                <td className="py-2 px-2 text-xs">{log.receivedAt ? new Date(log.receivedAt).toLocaleString() : "—"}</td>
+                                                <td className="py-2 px-2 text-xs">{log.displayedAt ? new Date(log.displayedAt).toLocaleString() : "—"}</td>
+                                                <td className="py-2 px-2 text-xs text-red-600 max-w-[150px] truncate" title={log.errorMessage}>{log.errorMessage || "—"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                                <p className="text-xs text-gray-500">
+                                    <strong>sent</strong> = servidor envió; <strong>received</strong> = SW recibió; <strong>displayed</strong> = usuario vio la notificación; <strong>failed</strong> = error al enviar; <strong>error</strong> = fallo en el SW.
+                                </p>
                         </CardContent>
                     </Card>
                 </div>

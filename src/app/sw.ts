@@ -28,6 +28,14 @@ const serwist = new Serwist({
     },
 });
 
+function logDelivery(deliveryId: string, status: string, error?: string) {
+    fetch(`${self.location.origin}/api/push/log-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryId, status, error }),
+    }).catch(() => {});
+}
+
 // Registrar push ANTES de Serwist para evitar que intercepte el evento
 self.addEventListener("push", (event) => {
     if (!event.data) return;
@@ -35,7 +43,10 @@ self.addEventListener("push", (event) => {
         event.data
             .json()
             .catch(() => ({}))
-            .then((data: { title?: string; body?: string; url?: string }) => {
+            .then((data: { title?: string; body?: string; url?: string; deliveryId?: string }) => {
+                const deliveryId = data.deliveryId;
+                if (deliveryId) logDelivery(deliveryId, "received");
+
                 const title = data.title || "Going";
                 const baseUrl = self.location.origin;
                 const options: NotificationOptions = {
@@ -47,7 +58,15 @@ self.addEventListener("push", (event) => {
                     requireInteraction: false,
                     silent: false,
                 };
-                return self.registration.showNotification(title, options);
+                return self.registration
+                    .showNotification(title, options)
+                    .then(() => {
+                        if (deliveryId) logDelivery(deliveryId, "displayed");
+                    })
+                    .catch((err) => {
+                        if (deliveryId) logDelivery(deliveryId, "error", String(err?.message || err));
+                        throw err;
+                    });
             })
     );
 });

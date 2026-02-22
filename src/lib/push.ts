@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import webPush from "web-push";
 import dbConnect from "@/lib/mongodb";
 import PushSubscription from "@/models/PushSubscription";
+import PushDeliveryLog from "@/models/PushDeliveryLog";
 import NotificationSettings from "@/models/NotificationSettings";
 import InAppNotification from "@/models/InAppNotification";
 import type { NotificationType } from "@/models/NotificationSettings";
@@ -65,7 +67,7 @@ export async function sendPushIfEnabled(
     const settings = await getNotificationSettings();
     if (!settings[type]) return { sent: 0, failed: 0 };
     createInAppNotification(userId, payload).catch(() => {});
-    return sendPushToUser(userId, payload);
+    return sendPushToUser(userId, payload, { type });
 }
 
 /** Envía push a varios usuarios solo si el tipo está habilitado. */
@@ -80,7 +82,7 @@ export async function sendPushToUsersIfEnabled(
     let totalSent = 0;
     let totalFailed = 0;
     for (const uid of userIds) {
-        const r = await sendPushToUser(uid, payload);
+        const r = await sendPushToUser(uid, payload, { type });
         totalSent += r.sent;
         totalFailed += r.failed;
     }
@@ -89,7 +91,8 @@ export async function sendPushToUsersIfEnabled(
 
 export async function sendPushToUser(
     userId: string,
-    payload: PushPayload
+    payload: PushPayload,
+    options?: { type?: NotificationType }
 ): Promise<{ sent: number; failed: number }> {
     if (!vapidPublic || !vapidPrivate) return { sent: 0, failed: 0 };
 
@@ -97,34 +100,57 @@ export async function sendPushToUser(
     const subs = await PushSubscription.find({ userId }).lean();
     if (subs.length === 0) return { sent: 0, failed: 0 };
 
-    const message = JSON.stringify({
-        title: payload.title,
-        body: payload.body || "",
-        url: payload.url || "/",
-    });
-
     let sent = 0;
     let failed = 0;
 
     for (const sub of subs) {
+        const deliveryId = randomUUID();
+        const messagePayload = {
+            title: payload.title,
+            body: payload.body || "",
+            url: payload.url || "/",
+            deliveryId,
+        };
+        const message = JSON.stringify(messagePayload);
+
         try {
             const keys = {
                 p256dh: toBase64UrlSafe(sub.keys.p256dh),
                 auth: toBase64UrlSafe(sub.keys.auth),
             };
             await webPush.sendNotification(
-                {
-                    endpoint: sub.endpoint,
-                    keys,
-                },
+                { endpoint: sub.endpoint, keys },
                 message,
                 { TTL: 86400 }
             );
             sent++;
+            await PushDeliveryLog.create({
+                deliveryId,
+                userId,
+                type: options?.type,
+                payload: { title: payload.title, body: payload.body, url: payload.url },
+                endpoint: sub.endpoint.slice(0, 120),
+                subscriptionId: String(sub._id),
+                status: "sent",
+                sentAt: new Date(),
+            });
         } catch (err: unknown) {
             failed++;
             const status = (err as { statusCode?: number })?.statusCode;
-            console.error("[Push] Send failed:", (err as Error)?.message, "status:", status, "userId:", userId, "endpoint:", sub.endpoint?.slice(0, 80));
+            const errMsg = (err as Error)?.message;
+            console.error("[Push] Send failed:", errMsg, "status:", status, "userId:", userId);
+            await PushDeliveryLog.create({
+                deliveryId,
+                userId,
+                type: options?.type,
+                payload: { title: payload.title, body: payload.body, url: payload.url },
+                endpoint: sub.endpoint.slice(0, 120),
+                subscriptionId: String(sub._id),
+                status: "failed",
+                errorMessage: `${errMsg} (status: ${status})`,
+                sentAt: new Date(),
+                errorAt: new Date(),
+            });
             if (status === 410 || status === 404) {
                 await PushSubscription.deleteOne({ _id: sub._id });
             }
