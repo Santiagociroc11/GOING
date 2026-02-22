@@ -5,6 +5,8 @@ import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Package, DollarSign, Clock } from "lucide-react";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
 type Order = {
     _id: string;
@@ -53,14 +55,18 @@ export default function DriverFeedPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 px-1">
+            <NotificationPromptBanner />
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Feed de Entregas en Vivo</h2>
                     <p className="text-gray-500 text-sm sm:text-base">Pedidos disponibles en tu ciudad esperando un domiciliario.</p>
                 </div>
-                <Button variant="outline" onClick={fetchFeed} disabled={loading} className="hover:text-orange-600 border-orange-200 min-h-[44px] shrink-0">
-                    {loading ? "Actualizando..." : "Actualizar Feed"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <PushNotificationToggle />
+                    <Button variant="outline" onClick={fetchFeed} disabled={loading} className="hover:text-orange-600 border-orange-200 min-h-[44px] shrink-0">
+                        {loading ? "Actualizando..." : "Actualizar Feed"}
+                    </Button>
+                </div>
             </div>
 
             <div className="grid gap-6">

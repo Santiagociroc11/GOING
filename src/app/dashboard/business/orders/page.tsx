@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, Truck, Package } from "lucide-react";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
 type Order = {
     _id: string;
@@ -52,14 +54,18 @@ export default function BusinessOrdersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <NotificationPromptBanner />
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Mis Pedidos</h2>
                     <p className="text-gray-500">Rastrea tus entregas. Se actualiza automáticamente cada 30 segundos.</p>
                 </div>
-                <Button variant="outline" onClick={fetchOrders} disabled={loading} className="hover:text-orange-600 border-orange-200">
-                    <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
-                </Button>
+                <div className="flex items-center gap-2">
+                    <PushNotificationToggle />
+                    <Button variant="outline" onClick={fetchOrders} disabled={loading} className="hover:text-orange-600 border-orange-200">
+                        <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
+                    </Button>
+                </div>
             </div>
 
             {activeOrders.length > 0 && (

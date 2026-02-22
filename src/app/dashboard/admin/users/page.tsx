@@ -9,7 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, UserPlus, Users, UserCog, Wallet } from "lucide-react";
+import { RefreshCcw, UserPlus, Users, UserCog, Wallet, Pencil, MoreVertical, UserX, UserCheck } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type User = {
     _id: string;
@@ -44,6 +50,22 @@ export default function AdminUsersPage() {
     const [rechargeAmount, setRechargeAmount] = useState("");
     const [rechargeNote, setRechargeNote] = useState("");
     const [recharging, setRecharging] = useState(false);
+
+    const [editUser, setEditUser] = useState<User | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editPassword, setEditPassword] = useState("");
+    const [editRole, setEditRole] = useState<"BUSINESS" | "DRIVER" | "ADMIN">("BUSINESS");
+    const [editCity, setEditCity] = useState("");
+    const [editActive, setEditActive] = useState(true);
+    const [editCompanyName, setEditCompanyName] = useState("");
+    const [editVehicleType, setEditVehicleType] = useState("");
+    const [editLicensePlate, setEditLicensePlate] = useState("");
+    const [editStorePlainPassword, setEditStorePlainPassword] = useState(false);
+    const [updating, setUpdating] = useState(false);
+
+    const [deleteUser, setDeleteUser] = useState<User | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -141,6 +163,78 @@ export default function AdminUsersPage() {
         setRechargeNote("");
     };
 
+    const openEditDialog = (user: User) => {
+        setEditUser(user);
+        setEditName(user.name);
+        setEditEmail(user.email);
+        setEditPassword("");
+        setEditRole(user.role as "BUSINESS" | "DRIVER" | "ADMIN");
+        setEditCity(user.city);
+        setEditActive(user.active);
+        setEditCompanyName(user.businessDetails?.companyName ?? "");
+        setEditVehicleType(user.driverDetails?.vehicleType ?? "");
+        setEditLicensePlate(user.driverDetails?.licensePlate ?? "");
+        setEditStorePlainPassword(false);
+    };
+
+    const handleUpdateUser = async () => {
+        if (!editUser) return;
+        if (!editName.trim() || !editEmail.trim() || !editCity.trim()) {
+            toast.error("Completa nombre, email y ciudad");
+            return;
+        }
+
+        setUpdating(true);
+        const body: Record<string, unknown> = {
+            name: editName.trim(),
+            email: editEmail.trim(),
+            role: editRole,
+            city: editCity.trim(),
+            active: editActive,
+            businessDetails: editRole === "BUSINESS" ? { companyName: editCompanyName || undefined } : undefined,
+            driverDetails: editRole === "DRIVER" ? { vehicleType: editVehicleType || undefined, licensePlate: editLicensePlate || undefined } : undefined,
+        };
+        if (editPassword.trim()) {
+            body.password = editPassword;
+            body.storePlainPassword = editStorePlainPassword;
+        }
+
+        const { ok, data } = await mutateWithToast(`/api/admin/users/${editUser._id}`, {
+            method: "PUT",
+            body,
+        });
+        setUpdating(false);
+        if (ok) {
+            setEditUser(null);
+            const updated = data as User | undefined;
+            if (updated) setUsers((prev) => prev.map((u) => (u._id === updated._id ? { ...u, ...updated } : u)));
+            else fetchUsers();
+        }
+    };
+
+    const handleToggleActive = async (user: User) => {
+        const { ok, data } = await mutateWithToast(`/api/admin/users/${user._id}`, {
+            method: "PUT",
+            body: { active: !user.active },
+        });
+        const updated = data as User | undefined;
+        if (ok && updated) {
+            setUsers((prev) => prev.map((u) => (u._id === updated._id ? { ...u, active: updated.active } : u)));
+        }
+    };
+
+    const handleDeleteUser = async () => {
+        if (!deleteUser) return;
+
+        setDeleting(true);
+        const { ok } = await mutateWithToast(`/api/admin/users/${deleteUser._id}`, { method: "DELETE" });
+        setDeleting(false);
+        if (ok) {
+            setDeleteUser(null);
+            setUsers((prev) => prev.map((u) => (u._id === deleteUser._id ? { ...u, active: false } : u)));
+        }
+    };
+
     const getRoleBadge = (role: string) => {
         const variants: Record<string, string> = {
             ADMIN: "bg-red-100 text-red-700",
@@ -158,7 +252,7 @@ export default function AdminUsersPage() {
                         <Users className="h-8 w-8 text-orange-600" />
                         Gestión de Usuarios
                     </h2>
-                    <p className="text-gray-500">Visualiza y crea usuarios de la plataforma.</p>
+                    <p className="text-gray-500">Crear, editar, activar y desactivar usuarios.</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" size="icon" onClick={fetchUsers} title="Actualizar">
@@ -256,6 +350,117 @@ export default function AdminUsersPage() {
                         </DialogContent>
                     </Dialog>
 
+                    <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null); }}>
+                        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>Editar usuario</DialogTitle>
+                                <DialogDescription>
+                                    Modifica los datos del usuario. Deja la contraseña vacía para no cambiarla.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Nombre</Label>
+                                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="col-span-3" placeholder="Juan Pérez" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Email</Label>
+                                    <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="col-span-3" placeholder="juan@ejemplo.com" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Nueva contraseña</Label>
+                                    <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="col-span-3" placeholder="Dejar vacío para no cambiar" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Rol</Label>
+                                    <Select value={editRole} onValueChange={(v) => setEditRole(v as "BUSINESS" | "DRIVER" | "ADMIN")}>
+                                        <SelectTrigger className="col-span-3">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="BUSINESS">Negocio</SelectItem>
+                                            <SelectItem value="DRIVER">Conductor</SelectItem>
+                                            <SelectItem value="ADMIN">Administrador</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Ciudad</Label>
+                                    <Input value={editCity} onChange={(e) => setEditCity(e.target.value)} className="col-span-3" placeholder="BOGOTA" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right col-span-1"></Label>
+                                    <label className="col-span-3 flex items-center gap-2 text-sm text-gray-600">
+                                        <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} className="rounded" />
+                                        Usuario activo
+                                    </label>
+                                </div>
+                                {editRole === "BUSINESS" && (
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">Empresa</Label>
+                                        <Input value={editCompanyName} onChange={(e) => setEditCompanyName(e.target.value)} className="col-span-3" placeholder="Mi Empresa S.A.S" />
+                                    </div>
+                                )}
+                                {editRole === "DRIVER" && (
+                                    <>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right">Vehículo</Label>
+                                            <Select value={editVehicleType} onValueChange={setEditVehicleType}>
+                                                <SelectTrigger className="col-span-3">
+                                                    <SelectValue placeholder="Seleccionar" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Motorcycle">Moto</SelectItem>
+                                                    <SelectItem value="Car">Carro</SelectItem>
+                                                    <SelectItem value="Bicycle">Bicicleta</SelectItem>
+                                                    <SelectItem value="Van">Camioneta</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label className="text-right">Placa</Label>
+                                            <Input value={editLicensePlate} onChange={(e) => setEditLicensePlate(e.target.value)} className="col-span-3" placeholder="ABC-123" />
+                                        </div>
+                                    </>
+                                )}
+                                {editPassword && (
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right col-span-1"></Label>
+                                        <label className="col-span-3 flex items-center gap-2 text-sm text-gray-600">
+                                            <input type="checkbox" checked={editStorePlainPassword} onChange={(e) => setEditStorePlainPassword(e.target.checked)} className="rounded" />
+                                            Guardar contraseña en texto plano
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditUser(null)}>Cancelar</Button>
+                                <Button onClick={handleUpdateUser} disabled={updating} className="bg-orange-600 hover:bg-orange-700">
+                                    {updating ? "Guardando..." : "Guardar"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={!!deleteUser} onOpenChange={(open) => { if (!open) setDeleteUser(null); }}>
+                        <DialogContent className="sm:max-w-[400px]">
+                            <DialogHeader>
+                                <DialogTitle>Desactivar usuario</DialogTitle>
+                                <DialogDescription>
+                                    {deleteUser && (
+                                        <>¿Desactivar a <strong>{deleteUser.name}</strong>? No podrá iniciar sesión hasta que lo reactives desde Editar.</>
+                                    )}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setDeleteUser(null)}>Cancelar</Button>
+                                <Button variant="destructive" onClick={handleDeleteUser} disabled={deleting}>
+                                    {deleting ? "Desactivando..." : "Desactivar"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
                     <Dialog open={!!rechargeUserId} onOpenChange={(open) => { if (!open) setRechargeUserId(null); }}>
                         <DialogContent className="sm:max-w-[400px]">
                             <DialogHeader>
@@ -319,15 +524,42 @@ export default function AdminUsersPage() {
                                     {user.active ? "Activo" : "Inactivo"}
                                 </Badge>
                             </div>
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEditDialog(user)}
+                                    className="text-gray-600 hover:text-orange-600 justify-start"
+                                >
+                                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                                </Button>
                                 {user.role === "BUSINESS" && (
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => openRechargeDialog(user)}
-                                        className="text-emerald-600 hover:text-emerald-700 flex-1 justify-start"
+                                        className="text-emerald-600 hover:text-emerald-700 justify-start"
                                     >
                                         <Wallet className="h-4 w-4 mr-2" /> Recargar
+                                    </Button>
+                                )}
+                                {user.active ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setDeleteUser(user)}
+                                        className="text-red-600 hover:text-red-700 justify-start"
+                                    >
+                                        <UserX className="h-4 w-4 mr-2" /> Desactivar
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleToggleActive(user)}
+                                        className="text-green-600 hover:text-green-700 justify-start"
+                                    >
+                                        <UserCheck className="h-4 w-4 mr-2" /> Activar
                                     </Button>
                                 )}
                                 {user.role !== "ADMIN" && (
@@ -335,7 +567,7 @@ export default function AdminUsersPage() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleImpersonate(user._id)}
-                                        className="text-orange-600 hover:text-orange-700 flex-1 justify-start"
+                                        className="text-orange-600 hover:text-orange-700 justify-start"
                                     >
                                         <UserCog className="h-4 w-4 mr-2" /> Suplantar
                                     </Button>
@@ -389,29 +621,48 @@ export default function AdminUsersPage() {
                                     {new Date(user.createdAt).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <div className="flex justify-end gap-1">
-                                        {user.role === "BUSINESS" && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openRechargeDialog(user)}
-                                                title="Recargar saldo"
-                                                className="text-emerald-600 hover:text-emerald-700"
-                                            >
-                                                <Wallet className="h-4 w-4" /> Recargar
-                                            </Button>
-                                        )}
-                                        {user.role !== "ADMIN" && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleImpersonate(user._id)}
-                                                title="Ver como este usuario"
-                                                className="text-orange-600 hover:text-orange-700"
-                                            >
-                                                <UserCog className="h-4 w-4" /> Suplantar
-                                            </Button>
-                                        )}
+                                    <div className="flex justify-end gap-1 items-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => openEditDialog(user)}
+                                            title="Editar"
+                                            className="text-gray-600 hover:text-orange-600"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon-sm" className="h-8 w-8">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                {user.role === "BUSINESS" && (
+                                                    <DropdownMenuItem onClick={() => openRechargeDialog(user)}>
+                                                        <Wallet className="h-4 w-4 mr-2" /> Recargar saldo
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {user.active ? (
+                                                    <DropdownMenuItem
+                                                        variant="destructive"
+                                                        onClick={() => setDeleteUser(user)}
+                                                        className="text-red-600"
+                                                    >
+                                                        <UserX className="h-4 w-4 mr-2" /> Desactivar
+                                                    </DropdownMenuItem>
+                                                ) : (
+                                                    <DropdownMenuItem onClick={() => handleToggleActive(user)}>
+                                                        <UserCheck className="h-4 w-4 mr-2" /> Activar
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {user.role !== "ADMIN" && (
+                                                    <DropdownMenuItem onClick={() => handleImpersonate(user._id)}>
+                                                        <UserCog className="h-4 w-4 mr-2" /> Suplantar
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </TableCell>
                             </TableRow>

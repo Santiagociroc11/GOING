@@ -6,6 +6,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, PackageCheck, PackageOpen, Truck, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
 type Order = {
     _id: string;
@@ -58,17 +60,21 @@ export default function DriverOrdersPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
+            <NotificationPromptBanner />
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight">Mis Entregas</h2>
                     <p className="text-gray-500">Gestiona tus rutas activas y mira tu historial.</p>
                 </div>
-                {balance !== null && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
-                        <span className="text-sm text-emerald-600">Saldo acumulado:</span>
-                        <span className="font-bold text-emerald-700">${balance.toLocaleString()}</span>
-                    </div>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                    <PushNotificationToggle />
+                    {balance !== null && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                            <span className="text-sm text-emerald-600">Saldo acumulado:</span>
+                            <span className="font-bold text-emerald-700">${balance.toLocaleString()}</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div>
