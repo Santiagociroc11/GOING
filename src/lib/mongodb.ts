@@ -17,11 +17,12 @@ async function dbConnect() {
     return cached.conn;
   }
   if (!cached.promise) {
+    console.log("[GOING] MongoDB: intentando conectar...");
     const opts = {
       bufferCommands: false,
     };
     cached.promise = mongoose.connect(MONGODB_URI as string, opts).then((mongoose) => {
-      console.log("Connected to MongoDB");
+      console.log("[GOING] MongoDB: conectado correctamente");
       return mongoose;
     });
   }
@@ -29,6 +30,7 @@ async function dbConnect() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    console.error("[GOING] MongoDB: error de conexión", e);
     throw e;
   }
   return cached.conn;
