@@ -25,10 +25,11 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Invalid credentials");
                 }
 
-                const isCorrectPassword = await bcrypt.compare(
-                    credentials.password,
-                    user.password
-                );
+                // Soporta bcrypt hash o contraseña en texto plano
+                const isBcryptHash = user.password.startsWith("$2");
+                const isCorrectPassword = isBcryptHash
+                    ? await bcrypt.compare(credentials.password, user.password)
+                    : credentials.password === user.password;
 
                 if (!isCorrectPassword) {
                     throw new Error("Invalid credentials");
@@ -68,6 +69,22 @@ export const authOptions: NextAuthOptions = {
     },
     session: {
         strategy: "jwt",
+        maxAge: 30 * 24 * 60 * 60, // 30 días
+        updateAge: 24 * 60 * 60, // Refrescar cada 24h
+    },
+    cookies: {
+        sessionToken: {
+            name: process.env.NODE_ENV === "production"
+                ? "__Secure-next-auth.session-token"
+                : "next-auth.session-token",
+            options: {
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+                maxAge: 30 * 24 * 60 * 60, // 30 días - persiste al cerrar el navegador
+            },
+        },
     },
     secret: process.env.NEXTAUTH_SECRET,
 };
