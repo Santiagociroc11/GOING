@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
 import User from "@/models/User";
 
 export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getEffectiveSession();
         if (!session || (session.user as any).role !== "DRIVER") {
             return NextResponse.json({ message: "Unauthorized. Only drivers can access the feed." }, { status: 401 });
         }

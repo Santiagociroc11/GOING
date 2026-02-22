@@ -1,8 +1,42 @@
+import { getServerSession } from "next-auth";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
+
+export const IMPERSONATE_COOKIE = "going_impersonate";
+
+/** Sesión efectiva: si un admin está suplantando, devuelve la sesión del usuario suplantado */
+export async function getEffectiveSession() {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any).role !== "ADMIN") return session;
+
+    const cookieStore = await cookies();
+    const raw = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+    if (!raw) return session;
+
+    try {
+        const { userId, userName, userEmail, userRole } = JSON.parse(decodeURIComponent(raw));
+        if (!userId || !userRole) return session;
+
+        return {
+            ...session,
+            user: {
+                ...session.user,
+                id: userId,
+                name: userName,
+                email: userEmail,
+                role: userRole,
+            },
+            realUser: session.user,
+            isImpersonating: true,
+        };
+    } catch {
+        return session;
+    }
+}
 
 export const authOptions: NextAuthOptions = {
     ...(process.env.AUTH_TRUST_HOST !== "false" && { trustHost: true } as object),

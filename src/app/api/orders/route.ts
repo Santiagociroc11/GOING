@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getEffectiveSession } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
 import Rate from "@/models/Rate";
@@ -21,7 +20,7 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
 
 export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getEffectiveSession();
         if (!session || !session.user) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
@@ -52,7 +51,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getEffectiveSession();
         if (!session || (session.user as any).role !== "BUSINESS") {
             return NextResponse.json({ message: "Unauthorized. Only businesses can create orders." }, { status: 401 });
         }

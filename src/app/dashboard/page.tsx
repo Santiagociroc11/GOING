@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getEffectiveSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default async function DashboardPage() {
-    const session = await getServerSession(authOptions);
+    const session = await getEffectiveSession();
 
     if (!session) {
         redirect("/login");

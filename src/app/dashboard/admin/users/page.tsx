@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, UserPlus, Users } from "lucide-react";
+import { RefreshCcw, UserPlus, Users, UserCog } from "lucide-react";
 
 type User = {
     _id: string;
@@ -89,6 +89,19 @@ export default function AdminUsersPage() {
             setIsDialogOpen(false);
             resetForm();
             fetchUsers();
+        }
+    };
+
+    const handleImpersonate = async (userId: string) => {
+        const res = await fetch("/api/admin/impersonate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+        });
+        if (res.ok) {
+            window.location.href = "/dashboard";
+        } else {
+            toast.error("No se pudo suplantar al usuario");
         }
     };
 
@@ -219,12 +232,13 @@ export default function AdminUsersPage() {
                             <TableHead>Ciudad</TableHead>
                             <TableHead>Estado</TableHead>
                             <TableHead>Registro</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {users.length === 0 && !loading && (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center text-gray-500">
+                                <TableCell colSpan={7} className="h-24 text-center text-gray-500">
                                     No hay usuarios registrados.
                                 </TableCell>
                             </TableRow>
@@ -242,6 +256,19 @@ export default function AdminUsersPage() {
                                 </TableCell>
                                 <TableCell className="text-gray-500 text-sm">
                                     {new Date(user.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {user.role !== "ADMIN" && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleImpersonate(user._id)}
+                                            title="Ver como este usuario"
+                                            className="text-orange-600 hover:text-orange-700"
+                                        >
+                                            <UserCog className="h-4 w-4" /> Suplantar
+                                        </Button>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
