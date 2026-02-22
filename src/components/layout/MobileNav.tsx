@@ -23,24 +23,28 @@ export default function MobileNav({ effectiveSession }: { effectiveSession?: Eff
 
     return (
         <>
-            <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden h-10 w-10"
+            <button
+                type="button"
                 onClick={() => setOpen(true)}
                 aria-label="Abrir menú"
+                className="tap-clean md:hidden flex items-center justify-center h-10 w-10 -ml-1 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100 active:scale-95 transition-all duration-150 touch-manipulation"
             >
-                <Menu className="h-6 w-6" />
-            </Button>
+                <Menu className="h-5 w-5" />
+            </button>
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetHeader>
                     <span className="font-bold text-lg text-orange-600">Going</span>
-                    <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Cerrar">
+                    <button
+                        type="button"
+                        onClick={() => setOpen(false)}
+                        aria-label="Cerrar"
+                        className="tap-clean flex items-center justify-center h-10 w-10 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-200 active:scale-95 transition-all duration-150 touch-manipulation"
+                    >
                         <X className="h-5 w-5" />
-                    </Button>
+                    </button>
                 </SheetHeader>
                 <SheetContent>
-                    <nav className="flex flex-col gap-1">
+                    <nav className="flex flex-col gap-0.5">
                         {nav.map((item) => {
                             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
                             const Icon = item.icon;
@@ -50,8 +54,8 @@ export default function MobileNav({ effectiveSession }: { effectiveSession?: Eff
                                     href={item.href}
                                     onClick={() => setOpen(false)}
                                     className={cn(
-                                        "flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium transition-colors min-h-[44px]",
-                                        isActive ? "bg-orange-50 text-orange-700" : "text-gray-600 hover:bg-gray-100"
+                                        "tap-clean flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium transition-colors min-h-[48px] active:scale-[0.98] touch-manipulation",
+                                        isActive ? "bg-orange-50 text-orange-700" : "text-gray-600 hover:bg-gray-100 active:bg-gray-100"
                                     )}
                                 >
                                     <Icon className={cn("h-5 w-5 shrink-0", isActive ? "text-orange-600" : "text-gray-400")} />

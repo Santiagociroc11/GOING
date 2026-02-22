@@ -124,3 +124,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Quita el highlight feo al tocar en móvil */
+.tap-clean {
+  -webkit-tap-highlight-color: transparent;
+}
