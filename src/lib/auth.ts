@@ -19,12 +19,17 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 const email = credentials.email.trim().toLowerCase();
-                await dbConnect();
+                let user;
 
-                // Búsqueda case-insensitive por email (evita Admin@ vs admin@)
-                const user = await User.findOne({
-                    email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
-                });
+                try {
+                    await dbConnect();
+                    user = await User.findOne({
+                        email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+                    });
+                } catch (e) {
+                    console.error("[Auth] MongoDB error:", e);
+                    throw new Error("Error de conexión a la base de datos. Revisa MONGODB_URI.");
+                }
 
                 if (!user) {
                     throw new Error("Invalid credentials");
@@ -34,7 +39,6 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Invalid credentials");
                 }
 
-                // Soporta bcrypt hash o contraseña en texto plano
                 const isBcryptHash = user.password.startsWith("$2");
                 const isCorrectPassword = isBcryptHash
                     ? await bcrypt.compare(credentials.password, user.password)

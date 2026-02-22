@@ -5,10 +5,11 @@ import User from "@/models/User";
 
 /**
  * Diagnóstico: verifica paso a paso por qué falla el login.
- * Solo activo con DEBUG_AUTH=1 en .env.local
+ * Activo con DEBUG_AUTH=1 o en desarrollo (NODE_ENV !== production)
  */
 export async function POST(req: Request) {
-    if (process.env.DEBUG_AUTH !== "1") {
+    const debugEnabled = process.env.DEBUG_AUTH === "1" || process.env.NODE_ENV !== "production";
+    if (!debugEnabled) {
         return NextResponse.json({ error: "Deshabilitado" }, { status: 404 });
     }
 
