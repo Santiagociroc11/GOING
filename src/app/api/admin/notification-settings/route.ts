@@ -62,7 +62,7 @@ export async function PUT(req: Request) {
         const settings = await NotificationSettings.findOneAndUpdate(
             {},
             { $set: updates },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: "after" }
         ).lean();
 
         const result: Record<string, boolean> = {};

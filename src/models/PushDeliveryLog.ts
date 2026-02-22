@@ -19,7 +19,7 @@ export interface IPushDeliveryLog extends Document {
 
 const PushDeliveryLogSchema = new Schema(
     {
-        deliveryId: { type: String, required: true, unique: true, index: true },
+        deliveryId: { type: String, required: true, unique: true },
         userId: { type: String, required: true, index: true },
         type: { type: String },
         payload: {

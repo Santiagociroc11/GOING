@@ -12,14 +12,25 @@ export async function register() {
 
   const port = process.env.PORT || "3000";
   const cronSecret = process.env.CRON_SECRET;
-  const cronUrl = `http://127.0.0.1:${port}/api/cron/remind-pending-orders`;
+  const base =
+    process.env.CRON_SELF_URL ||
+    process.env.NEXTAUTH_URL ||
+    `http://127.0.0.1:${port}`;
+  const cronUrl = new URL("/api/cron/remind-pending-orders", base).href;
 
   setInterval(async () => {
     try {
-      const res = await fetch(cronUrl, {
-        headers: cronSecret ? { Authorization: `Bearer ${cronSecret}` } : {},
-      });
-      const data = (await res.json().catch(() => ({}))) as { remindersSent?: number; checked?: number };
+      const headers: Record<string, string> = { Accept: "application/json" };
+      if (cronSecret) headers.Authorization = `Bearer ${cronSecret}`;
+      const res = await fetch(cronUrl, { headers });
+      const text = await res.text();
+      const data = (() => {
+        try {
+          return JSON.parse(text) as { remindersSent?: number; checked?: number };
+        } catch {
+          return {};
+        }
+      })();
       if (data.remindersSent && data.remindersSent > 0) {
         log(`Cron: ${data.remindersSent} recordatorios enviados (${data.checked ?? 0} pedidos revisados)`);
       }

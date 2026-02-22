@@ -42,7 +42,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 const updated = await Order.findOneAndUpdate(
                     { _id: id, status: "PENDING", driverId: null },
                     { $set: { driverId: userId, status: "ACCEPTED" } },
-                    { new: true }
+                    { returnDocument: "after" }
                 );
                 if (!updated) {
                     return NextResponse.json({ message: "El pedido ya fue aceptado por otro conductor" }, { status: 409 });

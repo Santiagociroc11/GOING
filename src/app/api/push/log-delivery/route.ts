@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         const log = await PushDeliveryLog.findOneAndUpdate(
             { deliveryId },
             { $set: update },
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (!log) {

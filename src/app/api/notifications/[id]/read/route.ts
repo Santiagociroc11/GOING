@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const n = await InAppNotification.findOneAndUpdate(
             { _id: id, userId },
             { $set: { read: true } },
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (!n) {

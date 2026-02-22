@@ -33,7 +33,7 @@ export async function POST(req: Request) {
             keys: { p256dh: keys.p256dh, auth: keys.auth },
             userAgent,
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: "after" }
     );
 
     return NextResponse.json({ ok: true });
