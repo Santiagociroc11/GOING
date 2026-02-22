@@ -27,6 +27,9 @@ export interface IOrder extends Document {
     details: string;
     paymentMethod: "PREPAID" | "COD";
     productValue?: number; // Valor del producto a recaudar (solo cuando paymentMethod === "COD")
+    pickupProofUrl?: string;
+    deliveryProofUrl?: string;
+    codCollectedAt?: Date; // Confirmación de recaudo COD por el negocio
     createdAt: Date;
     updatedAt: Date;
 }
@@ -64,6 +67,9 @@ const OrderSchema: Schema = new Schema(
         details: { type: String, required: true },
         paymentMethod: { type: String, enum: ["PREPAID", "COD"], default: "PREPAID" },
         productValue: { type: Number },
+        pickupProofUrl: { type: String },
+        deliveryProofUrl: { type: String },
+        codCollectedAt: { type: Date },
     },
     { timestamps: true }
 );

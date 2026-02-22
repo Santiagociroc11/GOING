@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Package, Route, Settings, UserCircle, Users, UserX } from "lucide-react";
 import MobileNav from "@/components/layout/MobileNav";
+import { NotificationBell } from "@/components/NotificationBell";
 import type { Session } from "next-auth";
 
 type EffectiveSession = Session & { isImpersonating?: boolean; realUser?: Session["user"] };
@@ -69,6 +70,7 @@ export default function Navbar({ effectiveSession }: { effectiveSession?: Effect
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-3 border-l pl-4 sm:pl-6">
+                            <NotificationBell />
                             <span className="text-sm font-medium flex items-center gap-2">
                                 <UserCircle className="h-5 w-5 text-gray-400" />
                                 <span className="hidden sm:inline-block">{displaySession.user?.name}</span>

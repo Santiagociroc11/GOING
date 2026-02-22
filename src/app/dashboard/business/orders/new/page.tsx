@@ -108,10 +108,11 @@ export default function NewOrderPage() {
                             </div>
                         </div>
                         {balance !== null && (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
-                                <Wallet className="h-5 w-5 text-emerald-600" />
-                                <span className="font-semibold text-emerald-700">${balance.toLocaleString()}</span>
-                                <span className="text-sm text-emerald-600">saldo</span>
+                            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${balance < 50000 ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-100"}`}>
+                                <Wallet className={`h-5 w-5 ${balance < 50000 ? "text-amber-600" : "text-emerald-600"}`} />
+                                <span className={`font-semibold ${balance < 50000 ? "text-amber-700" : "text-emerald-700"}`}>${balance.toLocaleString()}</span>
+                                <span className={`text-sm ${balance < 50000 ? "text-amber-600" : "text-emerald-600"}`}>saldo</span>
+                                {balance < 50000 && <span className="text-xs text-amber-600">(bajo)</span>}
                             </div>
                         )}
                     </div>

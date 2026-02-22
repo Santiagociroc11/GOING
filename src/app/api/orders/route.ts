@@ -6,6 +6,7 @@ import Rate from "@/models/Rate";
 import User from "@/models/User";
 import { deductBusinessBalance } from "@/lib/wallet";
 import { sendPushToUsersIfEnabled } from "@/lib/push";
+import { rateLimit, getClientIdentifier } from "@/lib/rate-limit";
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371; // Radius of the earth in km
@@ -31,24 +32,47 @@ export async function GET(req: Request) {
         const userId = (session.user as any).id;
         const role = (session.user as any).role;
 
-        let query = {};
+        let query: Record<string, unknown> = {};
         if (role === "BUSINESS") {
             query = { businessId: userId };
         } else if (role === "DRIVER") {
-            // Driver fetching their own history
             query = { driverId: userId };
         } else if (role === "ADMIN") {
-            // Admin sees everything
             query = {};
         }
 
-        // Sort by recent first, populate driver for business/admin
-        const orders = await Order.find(query)
-            .populate("driverId", "name email driverDetails")
-            .sort({ createdAt: -1 })
-            .lean();
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+        const limit = Math.min(50, Math.max(10, parseInt(searchParams.get("limit") || "20", 10)));
+        const skip = (page - 1) * limit;
 
-        return NextResponse.json(orders);
+        const populateDriver = { path: "driverId", select: "name email driverDetails" };
+        const populateBusiness = { path: "businessId", select: "name email businessDetails" };
+        const [ordersRaw, total] = await Promise.all([
+            Order.find(query)
+                .populate(populateDriver)
+                .populate(populateBusiness)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Order.countDocuments(query),
+        ]);
+
+        const Rating = (await import("@/models/Rating")).default;
+        const orderIds = ordersRaw.map((o: any) => o._id);
+        const myRatings = await Rating.find({ orderId: { $in: orderIds }, fromUserId: userId }).select("orderId").lean();
+        const ratedSet = new Set(myRatings.map((r: any) => r.orderId.toString()));
+
+        const orders = ordersRaw.map((o: any) => ({
+            ...o,
+            hasRated: ratedSet.has(o._id.toString()),
+        }));
+
+        return NextResponse.json({
+            orders,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasMore: page * limit < total },
+        });
     } catch (error) {
         return NextResponse.json({ message: "Error fetching orders" }, { status: 500 });
     }
@@ -56,6 +80,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
+        const id = getClientIdentifier(req);
+        const { ok } = rateLimit(`orders:${id}`);
+        if (!ok) {
+            return NextResponse.json({ message: "Demasiadas solicitudes. Intenta en un minuto." }, { status: 429 });
+        }
+
         const session = await getEffectiveSession();
         if (!session || (session.user as any).role !== "BUSINESS") {
             return NextResponse.json({ message: "Unauthorized. Only businesses can create orders." }, { status: 401 });

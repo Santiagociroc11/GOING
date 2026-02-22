@@ -6,6 +6,7 @@ import Link from "next/link";
 import DriverDashboardRedirect from "./DriverDashboardRedirect";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { BalanceCard } from "@/components/BalanceCard";
+import { AdminKpiCards } from "@/components/AdminKpiCards";
 
 export default async function DashboardPage() {
     const session = await getEffectiveSession();
@@ -32,6 +33,8 @@ export default async function DashboardPage() {
             <div className="mt-4">
                 <PushNotificationToggle />
             </div>
+
+            {role === "ADMIN" && <AdminKpiCards />}
 
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
                 {role === "ADMIN" && (
@@ -122,6 +125,17 @@ export default async function DashboardPage() {
                                 <Link href="/dashboard/admin/notifications">
                                     <Button variant="outline" className="w-full">Configurar</Button>
                                 </Link>
+                            </CardContent>
+                        </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Exportar Pedidos</CardTitle>
+                                <CardDescription>Descarga pedidos en CSV para reportes.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <a href="/api/admin/export/orders" download="pedidos.csv">
+                                    <Button variant="outline" className="w-full">Descargar CSV</Button>
+                                </a>
                             </CardContent>
                         </Card>
                     </>

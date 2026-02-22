@@ -2,6 +2,7 @@ import webPush from "web-push";
 import dbConnect from "@/lib/mongodb";
 import PushSubscription from "@/models/PushSubscription";
 import NotificationSettings from "@/models/NotificationSettings";
+import InAppNotification from "@/models/InAppNotification";
 import type { NotificationType } from "@/models/NotificationSettings";
 
 const vapidPublic = process.env.VAPID_PUBLIC_KEY;
@@ -32,6 +33,20 @@ async function getNotificationSettings(): Promise<Record<NotificationType, boole
     };
 }
 
+async function createInAppNotification(userId: string, payload: PushPayload): Promise<void> {
+    try {
+        await dbConnect();
+        await InAppNotification.create({
+            userId,
+            title: payload.title,
+            body: payload.body,
+            url: payload.url,
+        });
+    } catch (e) {
+        console.error("[Push] In-app notification create error:", e);
+    }
+}
+
 /** Envía push a un usuario solo si el tipo está habilitado en admin. */
 export async function sendPushIfEnabled(
     type: NotificationType,
@@ -40,6 +55,7 @@ export async function sendPushIfEnabled(
 ): Promise<{ sent: number; failed: number }> {
     const settings = await getNotificationSettings();
     if (!settings[type]) return { sent: 0, failed: 0 };
+    createInAppNotification(userId, payload).catch(() => {});
     return sendPushToUser(userId, payload);
 }
 
@@ -51,6 +67,7 @@ export async function sendPushToUsersIfEnabled(
 ): Promise<{ sent: number; failed: number }> {
     const settings = await getNotificationSettings();
     if (!settings[type] || userIds.length === 0) return { sent: 0, failed: 0 };
+    for (const uid of userIds) createInAppNotification(uid, payload).catch(() => {});
     let totalSent = 0;
     let totalFailed = 0;
     for (const uid of userIds) {

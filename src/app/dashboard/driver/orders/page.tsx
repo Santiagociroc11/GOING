@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, PackageCheck, PackageOpen, Truck, MoreVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MapPin, PackageCheck, PackageOpen, Truck } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
+import { ProofUploadModal } from "@/components/ProofUploadModal";
+import { RateOrderButton } from "@/components/RateOrderButton";
 
 type Order = {
     _id: string;
@@ -15,27 +16,35 @@ type Order = {
     price: number;
     status: string;
     details: string;
+    hasRated?: boolean;
     paymentMethod?: "PREPAID" | "COD";
     productValue?: number;
-    pickupInfo: { address: string; contactName: string; contactPhone: string; };
-    dropoffInfo: { address: string; contactName: string; contactPhone: string; };
+    pickupProofUrl?: string;
+    deliveryProofUrl?: string;
+    pickupInfo: { address: string; contactName: string; contactPhone: string };
+    dropoffInfo: { address: string; contactName: string; contactPhone: string };
+    businessId?: { name: string; businessDetails?: { companyName?: string } } | null;
     createdAt: string;
 };
 
 export default function DriverOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
+    const [pagination, setPagination] = useState<{ total: number; hasMore: boolean; page: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [balance, setBalance] = useState<number | null>(null);
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (page = 1) => {
         setLoading(true);
-        const { data, error } = await fetchWithToast<Order[]>("/api/orders");
-        if (!error && data) setOrders(data);
+        const { data, error } = await fetchWithToast<{ orders: Order[]; pagination: { total: number; hasMore: boolean; page: number } }>(`/api/orders?page=${page}&limit=20`);
+        if (!error && data) {
+            setOrders(data.orders);
+            setPagination(data.pagination);
+        }
         setLoading(false);
     };
 
     useEffect(() => {
-        fetchOrders();
+        fetchOrders(1);
     }, []);
 
     useEffect(() => {
@@ -44,15 +53,17 @@ export default function DriverOrdersPage() {
         });
     }, []);
 
-    const updateStatus = async (orderId: string, newStatus: string) => {
-        const { ok } = await mutateWithToast(`/api/orders/${orderId}/status`, {
-            method: "PUT",
-            body: { status: newStatus },
-        });
-        if (ok) {
-            toast.success(`Pedido marcado como ${newStatus === "PICKED_UP" ? "RECOGIDO" : newStatus === "DELIVERED" ? "ENTREGADO" : newStatus}`);
-            fetchOrders();
-        }
+    const [proofModal, setProofModal] = useState<{ orderId: string; type: "pickup" | "delivery" } | null>(null);
+
+    const handleProofConfirm = async (proofUrl: string) => {
+        if (!proofModal) return;
+        const status = proofModal.type === "pickup" ? "PICKED_UP" : "DELIVERED";
+        const body: Record<string, string> = { status, ...(proofModal.type === "pickup" ? { pickupProofUrl: proofUrl } : { deliveryProofUrl: proofUrl }) };
+        const { ok } = await mutateWithToast(`/api/orders/${proofModal.orderId}/status`, { method: "PUT", body });
+        if (!ok) throw new Error("No se pudo actualizar");
+        toast.success(proofModal.type === "pickup" ? "Pedido marcado como recogido" : "Pedido marcado como entregado");
+        fetchOrders();
+        setProofModal(null);
     };
 
     const activeOrders = orders.filter(o => ["ACCEPTED", "PICKED_UP"].includes(o.status));
@@ -134,17 +145,17 @@ export default function DriverOrdersPage() {
                                     {order.status === "ACCEPTED" && (
                                         <Button
                                             className="w-full h-14 text-lg bg-orange-500 hover:bg-orange-600 shadow-md"
-                                            onClick={() => updateStatus(order._id, "PICKED_UP")}
+                                            onClick={() => setProofModal({ orderId: order._id, type: "pickup" })}
                                         >
-                                            <Truck className="mr-2 h-5 w-5" /> He recogido el paquete
+                                            <Truck className="mr-2 h-5 w-5" /> He recogido el paquete (sube prueba)
                                         </Button>
                                     )}
                                     {order.status === "PICKED_UP" && (
                                         <Button
                                             className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 shadow-md"
-                                            onClick={() => updateStatus(order._id, "DELIVERED")}
+                                            onClick={() => setProofModal({ orderId: order._id, type: "delivery" })}
                                         >
-                                            <PackageCheck className="mr-2 h-5 w-5" /> Marcar como Entregado
+                                            <PackageCheck className="mr-2 h-5 w-5" /> Marcar como Entregado (sube prueba)
                                         </Button>
                                     )}
                                 </CardFooter>
@@ -154,6 +165,16 @@ export default function DriverOrdersPage() {
                 )}
             </div>
 
+            <ProofUploadModal
+                open={!!proofModal}
+                onOpenChange={(v) => !v && setProofModal(null)}
+                title={proofModal?.type === "pickup" ? "Prueba de recogida" : "Prueba de entrega"}
+                description={proofModal?.type === "pickup"
+                    ? "Sube una foto que demuestre que recogiste el paquete en el punto de recogida."
+                    : "Sube una foto que demuestre la entrega al destinatario."}
+                onConfirm={handleProofConfirm}
+            />
+
             <div className="mt-12">
                 <h3 className="text-xl font-bold mb-4 text-gray-900 border-b pb-2">Entregas Pasadas</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -162,14 +183,24 @@ export default function DriverOrdersPage() {
                     )}
                     {pastOrders.map(order => (
                         <Card key={order._id} className="opacity-75 hover:opacity-100 transition-opacity">
-                            <CardContent className="p-4 flex justify-between items-center">
+                            <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                 <div>
                                     <p className="font-semibold text-gray-900">${order.price.toFixed(2)} - {new Date(order.createdAt).toLocaleDateString()}</p>
                                     <p className="text-sm text-gray-500 truncate max-w-[200px]">{order.dropoffInfo.address}</p>
                                 </div>
-                                <span className={`text-xs font-bold px-2 py-1 rounded-md ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                    {order.status === 'DELIVERED' ? 'ENTREGADO' : 'CANCELADO'}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    {order.status === "DELIVERED" && order.businessId && (
+                                        <RateOrderButton
+                                            orderId={order._id}
+                                            targetName={order.businessId.businessDetails?.companyName || order.businessId.name || "Negocio"}
+                                            rated={order.hasRated}
+                                            onRated={() => fetchOrders(1)}
+                                        />
+                                    )}
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-md ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {order.status === 'DELIVERED' ? 'ENTREGADO' : 'CANCELADO'}
+                                    </span>
+                                </div>
                             </CardContent>
                         </Card>
                     ))}

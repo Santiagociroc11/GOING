@@ -19,7 +19,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         const { id } = await params;
         const body = await req.json();
-        const { status } = body;
+        const { status, pickupProofUrl, deliveryProofUrl, codCollected } = body;
 
         const validStatuses = ["PENDING", "ACCEPTED", "PICKED_UP", "DELIVERED", "CANCELLED"];
         if (!validStatuses.includes(status)) {
@@ -54,8 +54,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 }).catch(() => {});
                 return NextResponse.json({ message: "Status updated", order: updated });
             }
-            // Driver is updating their accepted order
+            // Driver is updating their accepted order - require proofs
             if (order.driverId?.toString() === userId) {
+                if (status === "PICKED_UP") {
+                    if (!pickupProofUrl || typeof pickupProofUrl !== "string") {
+                        return NextResponse.json(
+                            { message: "Debes subir una foto de prueba de recogida" },
+                            { status: 400 }
+                        );
+                    }
+                    order.pickupProofUrl = pickupProofUrl;
+                }
+                if (status === "DELIVERED") {
+                    if (!deliveryProofUrl || typeof deliveryProofUrl !== "string") {
+                        return NextResponse.json(
+                            { message: "Debes subir una foto de prueba de entrega" },
+                            { status: 400 }
+                        );
+                    }
+                    order.deliveryProofUrl = deliveryProofUrl;
+                }
                 order.status = status;
             } else {
                 return NextResponse.json({ message: "Unauthorized or order already taken" }, { status: 403 });

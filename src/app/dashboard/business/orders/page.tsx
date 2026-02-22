@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchWithToast } from "@/lib/toast";
+import { fetchWithToast, mutateWithToast, toast } from "@/lib/toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, Truck, Package } from "lucide-react";
+import { RateOrderButton } from "@/components/RateOrderButton";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
@@ -15,6 +16,10 @@ type Order = {
     price: number;
     status: string;
     details: string;
+    paymentMethod?: "PREPAID" | "COD";
+    productValue?: number;
+    codCollectedAt?: string;
+    hasRated?: boolean;
     pickupInfo: { address: string };
     dropoffInfo: { address: string };
     driverId?: { name: string; driverDetails?: { vehicleType?: string } } | null;
@@ -23,20 +28,32 @@ type Order = {
 
 export default function BusinessOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
+    const [pagination, setPagination] = useState<{ total: number; hasMore: boolean; page: number } | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (page = 1) => {
         setLoading(true);
-        const { data, error } = await fetchWithToast<Order[]>("/api/orders");
-        if (!error && data) setOrders(data);
+        const { data, error } = await fetchWithToast<{ orders: Order[]; pagination: { total: number; hasMore: boolean; page: number } }>(`/api/orders?page=${page}&limit=20`);
+        if (!error && data) {
+            setOrders(data.orders);
+            setPagination(data.pagination);
+        }
         setLoading(false);
     };
 
     useEffect(() => {
-        fetchOrders();
-        const interval = setInterval(fetchOrders, 30000); // Auto-refresh cada 30s
+        fetchOrders(1);
+        const interval = setInterval(() => fetchOrders(1), 30000);
         return () => clearInterval(interval);
     }, []);
+
+    const confirmCod = async (orderId: string) => {
+        const { ok } = await mutateWithToast(`/api/orders/${orderId}/confirm-cod`, { method: "POST" });
+        if (ok) {
+            toast.success("Recaudo confirmado");
+            fetchOrders(1);
+        }
+    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -62,7 +79,7 @@ export default function BusinessOrdersPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     <PushNotificationToggle />
-                    <Button variant="outline" onClick={fetchOrders} disabled={loading} className="hover:text-orange-600 border-orange-200">
+                    <Button variant="outline" onClick={() => fetchOrders(1)} disabled={loading} className="hover:text-orange-600 border-orange-200">
                         <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Actualizar
                     </Button>
                 </div>
@@ -150,6 +167,12 @@ export default function BusinessOrdersPage() {
                                 </div>
                                 <p className="text-sm text-gray-600 truncate">{order.pickupInfo.address}</p>
                                 <p className="text-sm text-gray-500">{order.driverId?.name || "—"}</p>
+                                {order.status === "DELIVERED" && order.paymentMethod === "COD" && !order.codCollectedAt && (
+                                    <Button size="sm" variant="outline" className="text-amber-700" onClick={() => confirmCod(order._id)}>Confirmar recaudo</Button>
+                                )}
+                                {order.status === "DELIVERED" && order.driverId && (
+                                    <RateOrderButton orderId={order._id} targetName={order.driverId.name} rated={order.hasRated} onRated={() => fetchOrders(1)} />
+                                )}
                                 <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString()}</p>
                             </div>
                         ))}
@@ -177,7 +200,22 @@ export default function BusinessOrdersPage() {
                                     <TableCell className="text-gray-500 text-sm">
                                         {order.driverId?.name || "—"}
                                     </TableCell>
-                                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-1">
+                                            {getStatusBadge(order.status)}
+                                            {order.status === "DELIVERED" && order.paymentMethod === "COD" && !order.codCollectedAt && (
+                                                <Button size="sm" variant="outline" className="text-amber-700 border-amber-200 hover:bg-amber-50 w-fit" onClick={() => confirmCod(order._id)}>
+                                                    Confirmar recaudo
+                                                </Button>
+                                            )}
+                                            {order.codCollectedAt && order.paymentMethod === "COD" && (
+                                                <span className="text-xs text-emerald-600">Recaudo confirmado</span>
+                                            )}
+                                            {order.status === "DELIVERED" && order.driverId && (
+                                                <RateOrderButton orderId={order._id} targetName={order.driverId.name} rated={order.hasRated} onRated={() => fetchOrders(1)} />
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))}

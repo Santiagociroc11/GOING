@@ -10,10 +10,11 @@ export default function DriverDashboardRedirect() {
 
     useEffect(() => {
         const check = async () => {
-            const res = await fetch("/api/orders");
+            const res = await fetch("/api/orders?limit=50");
             const data = await res.json();
-            if (Array.isArray(data)) {
-                const active = data.filter((o: { status: string }) =>
+            const list = data?.orders ?? (Array.isArray(data) ? data : []);
+            if (Array.isArray(list)) {
+                const active = list.filter((o: { status: string }) =>
                     ["ACCEPTED", "PICKED_UP"].includes(o.status)
                 );
                 if (active.length > 0) {
