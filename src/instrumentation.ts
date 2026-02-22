@@ -8,14 +8,5 @@ export async function register() {
   log(`NEXTAUTH_URL: ${process.env.NEXTAUTH_URL ?? "(no definido)"}`);
   log(`MONGODB_URI: ${process.env.MONGODB_URI ? "definido" : "(no definido)"}`);
   log(`NEXTAUTH_SECRET: ${process.env.NEXTAUTH_SECRET ? "definido" : "(no definido)"}`);
-
-  try {
-    const dbConnect = (await import("@/lib/mongodb")).default;
-    await dbConnect();
-    log("MongoDB: conexión establecida");
-  } catch (e) {
-    log(`MongoDB: error al conectar - ${e instanceof Error ? e.message : String(e)}`);
-  }
-
-  log("=== Servidor listo ===");
+  log("=== Servidor listo (MongoDB se conectará en la primera petición) ===");
 }
