@@ -222,7 +222,38 @@ export default function AdminUsersPage() {
                 </div>
             </div>
 
-            <div className="border rounded-md bg-white shadow-sm overflow-x-auto">
+            <div className="border rounded-md bg-white shadow-sm overflow-hidden">
+                <div className="md:hidden divide-y">
+                    {users.length === 0 && !loading && (
+                        <div className="p-8 text-center text-gray-500 text-sm">No hay usuarios registrados.</div>
+                    )}
+                    {users.map((user) => (
+                        <div key={user._id} className="p-4 space-y-2">
+                            <div className="flex justify-between items-start">
+                                <p className="font-semibold text-gray-900">{user.name}</p>
+                                {getRoleBadge(user.role)}
+                            </div>
+                            <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-xs text-gray-500">{user.city}</span>
+                                <Badge variant={user.active ? "default" : "secondary"} className={user.active ? "bg-green-100 text-green-700 text-xs" : "text-xs"}>
+                                    {user.active ? "Activo" : "Inactivo"}
+                                </Badge>
+                            </div>
+                            {user.role !== "ADMIN" && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleImpersonate(user._id)}
+                                    className="text-orange-600 hover:text-orange-700 w-full justify-start mt-2"
+                                >
+                                    <UserCog className="h-4 w-4 mr-2" /> Suplantar
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <div className="hidden md:block overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-50/50">
@@ -274,6 +305,7 @@ export default function AdminUsersPage() {
                         ))}
                     </TableBody>
                 </Table>
+                </div>
             </div>
         </div>
     );

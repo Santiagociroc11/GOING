@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { fetchWithToast } from "@/lib/toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { KPICard } from "@/components/ui/kpi-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Truck, PackageCheck, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -76,7 +76,7 @@ export default function AdminDriversPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Domiciliarios</h2>
+                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Domiciliarios</h2>
                     <p className="text-gray-500">Análisis de conductores y entregas realizadas.</p>
                 </div>
                 <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
@@ -84,49 +84,29 @@ export default function AdminDriversPage() {
                 </Button>
             </div>
 
-            <div className="grid sm:grid-cols-3 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-orange-100">
-                                <Truck className="h-6 w-6 text-orange-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Total Domiciliarios</p>
-                                <p className="text-2xl font-bold">{kpis.total}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-100">
-                                <PackageCheck className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Entregas Completadas</p>
-                                <p className="text-2xl font-bold">{kpis.totalDeliveries}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-100">
-                                <DollarSign className="h-6 w-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Total Entregas ($)</p>
-                                <p className="text-2xl font-bold">${kpis.totalEarned.toFixed(2)}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <KPICard icon={<Truck className="text-orange-600" />} label="Total Domiciliarios" value={kpis.total} iconClassName="bg-orange-100" />
+                <KPICard icon={<PackageCheck className="text-blue-600" />} label="Entregas Completadas" value={kpis.totalDeliveries} iconClassName="bg-blue-100" />
+                <KPICard icon={<DollarSign className="text-emerald-600" />} label="Total Entregas ($)" value={`$${kpis.totalEarned.toFixed(2)}`} iconClassName="bg-emerald-100" />
             </div>
 
-            <div className="border rounded-lg bg-white overflow-x-auto">
+            <div className="border rounded-lg bg-white overflow-hidden">
+                <div className="md:hidden divide-y">
+                    {sorted.map((d) => (
+                        <div key={d._id} className="p-4 space-y-1">
+                            <p className="font-semibold text-gray-900">{d.name}</p>
+                            <p className="text-sm text-gray-600">{d.city} · {d.vehicleType}</p>
+                            <div className="flex justify-between text-sm pt-2">
+                                <span className="text-gray-500">{d.totalDeliveries} entregas</span>
+                                <span className="font-semibold text-emerald-600">${d.totalEarned.toFixed(2)}</span>
+                            </div>
+                            {d.lastDelivery && (
+                                <p className="text-xs text-gray-400">{new Date(d.lastDelivery).toLocaleDateString()}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <div className="hidden md:block overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-50">
@@ -177,6 +157,7 @@ export default function AdminDriversPage() {
                         ))}
                     </TableBody>
                 </Table>
+                </div>
             </div>
         </div>
     );

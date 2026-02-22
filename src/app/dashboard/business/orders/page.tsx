@@ -54,7 +54,7 @@ export default function BusinessOrdersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Mis Pedidos</h2>
+                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Mis Pedidos</h2>
                     <p className="text-gray-500">Rastrea tus entregas. Se actualiza automáticamente cada 30 segundos.</p>
                 </div>
                 <Button variant="outline" onClick={fetchOrders} disabled={loading} className="hover:text-orange-600 border-orange-200">
@@ -68,7 +68,24 @@ export default function BusinessOrdersPage() {
                         <Package className="h-5 w-5 text-orange-600" />
                         En curso ({activeOrders.length})
                     </h3>
-                    <div className="border rounded-lg bg-white overflow-x-auto">
+                    <div className="border rounded-lg bg-white overflow-hidden">
+                        <div className="md:hidden divide-y p-2">
+                            {activeOrders.map((order) => (
+                                <div key={order._id} className="p-4 rounded-lg hover:bg-gray-50/50 space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold text-orange-600">${order.price.toFixed(2)}</span>
+                                        {getStatusBadge(order.status)}
+                                    </div>
+                                    <p className="text-sm text-gray-600 truncate">{order.pickupInfo.address}</p>
+                                    <p className="text-sm text-gray-600 truncate flex items-center gap-1">
+                                        <Truck className="h-4 w-4 text-orange-500 shrink-0" />
+                                        {order.driverId ? `${order.driverId.name}${order.driverId.driverDetails?.vehicleType ? ` (${order.driverId.driverDetails.vehicleType})` : ""}` : "Esperando..."}
+                                    </p>
+                                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString()}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="hidden md:block overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-orange-50/50">
@@ -107,13 +124,31 @@ export default function BusinessOrdersPage() {
                                 ))}
                             </TableBody>
                         </Table>
+                        </div>
                     </div>
                 </div>
             )}
 
             <div>
                 <h3 className="text-lg font-semibold mb-3">Historial</h3>
-                <div className="border rounded-lg bg-white overflow-x-auto">
+                <div className="border rounded-lg bg-white overflow-hidden">
+                    <div className="md:hidden divide-y p-2">
+                        {orders.length === 0 && !loading && (
+                            <div className="p-8 text-center text-gray-500 text-sm">Aún no has creado ningún pedido.</div>
+                        )}
+                        {completedOrders.map((order) => (
+                            <div key={order._id} className="p-4 rounded-lg hover:bg-gray-50/50 space-y-2">
+                                <div className="flex justify-between items-start">
+                                    <span className="font-bold text-gray-700">${order.price.toFixed(2)}</span>
+                                    {getStatusBadge(order.status)}
+                                </div>
+                                <p className="text-sm text-gray-600 truncate">{order.pickupInfo.address}</p>
+                                <p className="text-sm text-gray-500">{order.driverId?.name || "—"}</p>
+                                <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString()}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="hidden md:block overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gray-50/50">
@@ -126,13 +161,6 @@ export default function BusinessOrdersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {orders.length === 0 && !loading && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-32 text-center text-gray-500">
-                                        Aún no has creado ningún pedido.
-                                    </TableCell>
-                                </TableRow>
-                            )}
                             {completedOrders.map((order) => (
                                 <TableRow key={order._id}>
                                     <TableCell className="font-medium whitespace-nowrap text-gray-600">
@@ -149,6 +177,7 @@ export default function BusinessOrdersPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 </div>
             </div>
         </div>

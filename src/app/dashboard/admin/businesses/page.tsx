@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { fetchWithToast } from "@/lib/toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { KPICard } from "@/components/ui/kpi-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Building2, ShoppingCart, DollarSign, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
@@ -75,7 +75,7 @@ export default function AdminBusinessesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Negocios</h2>
+                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Negocios</h2>
                     <p className="text-gray-500">Análisis de negocios y pedidos realizados.</p>
                 </div>
                 <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
@@ -83,99 +83,82 @@ export default function AdminBusinessesPage() {
                 </Button>
             </div>
 
-            <div className="grid sm:grid-cols-3 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-orange-100">
-                                <Building2 className="h-6 w-6 text-orange-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Total Negocios</p>
-                                <p className="text-2xl font-bold">{kpis.total}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-100">
-                                <ShoppingCart className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Pedidos Entregados</p>
-                                <p className="text-2xl font-bold">{kpis.totalOrders}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-100">
-                                <DollarSign className="h-6 w-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Ingresos Totales</p>
-                                <p className="text-2xl font-bold">${kpis.totalRevenue.toFixed(2)}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <KPICard icon={<Building2 className="text-orange-600" />} label="Total Negocios" value={kpis.total} iconClassName="bg-orange-100" />
+                <KPICard icon={<ShoppingCart className="text-blue-600" />} label="Pedidos Entregados" value={kpis.totalOrders} iconClassName="bg-blue-100" />
+                <KPICard icon={<DollarSign className="text-emerald-600" />} label="Ingresos Totales" value={`$${kpis.totalRevenue.toFixed(2)}`} iconClassName="bg-emerald-100" />
             </div>
 
-            <div className="border rounded-lg bg-white overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-gray-50">
-                            <TableHead>
-                                <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("name")}>
-                                    Negocio <SortIcon col="name" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("companyName")}>
-                                    Empresa <SortIcon col="companyName" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("city")}>
-                                    Ciudad <SortIcon col="city" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("totalOrders")}>
-                                    Pedidos <SortIcon col="totalOrders" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("totalSpent")}>
-                                    Total $ <SortIcon col="totalSpent" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("lastOrder")}>
-                                    Último <SortIcon col="lastOrder" />
-                                </Button>
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sorted.map((b) => (
-                            <TableRow key={b._id}>
-                                <TableCell className="font-medium">{b.name}</TableCell>
-                                <TableCell>{b.companyName}</TableCell>
-                                <TableCell>{b.city}</TableCell>
-                                <TableCell>{b.totalOrders}</TableCell>
-                                <TableCell className="font-semibold text-emerald-600">${b.totalSpent.toFixed(2)}</TableCell>
-                                <TableCell className="text-gray-500 text-sm">
-                                    {b.lastOrder ? new Date(b.lastOrder).toLocaleDateString() : "—"}
-                                </TableCell>
+            <div className="border rounded-lg bg-white overflow-hidden">
+                {/* Vista móvil: cards */}
+                <div className="md:hidden divide-y">
+                    {sorted.map((b) => (
+                        <div key={b._id} className="p-4 space-y-1">
+                            <p className="font-semibold text-gray-900">{b.name}</p>
+                            <p className="text-sm text-gray-600">{b.companyName} · {b.city}</p>
+                            <div className="flex justify-between text-sm pt-2">
+                                <span className="text-gray-500">{b.totalOrders} pedidos</span>
+                                <span className="font-semibold text-emerald-600">${b.totalSpent.toFixed(2)}</span>
+                            </div>
+                            {b.lastOrder && (
+                                <p className="text-xs text-gray-400">{new Date(b.lastOrder).toLocaleDateString()}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                {/* Vista desktop: tabla */}
+                <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-gray-50">
+                                <TableHead>
+                                    <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("name")}>
+                                        Negocio <SortIcon col="name" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("companyName")}>
+                                        Empresa <SortIcon col="companyName" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("city")}>
+                                        Ciudad <SortIcon col="city" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("totalOrders")}>
+                                        Pedidos <SortIcon col="totalOrders" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("totalSpent")}>
+                                        Total $ <SortIcon col="totalSpent" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" className="font-semibold -ml-2" onClick={() => toggleSort("lastOrder")}>
+                                        Último <SortIcon col="lastOrder" />
+                                    </Button>
+                                </TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {sorted.map((b) => (
+                                <TableRow key={b._id}>
+                                    <TableCell className="font-medium">{b.name}</TableCell>
+                                    <TableCell>{b.companyName}</TableCell>
+                                    <TableCell>{b.city}</TableCell>
+                                    <TableCell>{b.totalOrders}</TableCell>
+                                    <TableCell className="font-semibold text-emerald-600">${b.totalSpent.toFixed(2)}</TableCell>
+                                    <TableCell className="text-gray-500 text-sm">
+                                        {b.lastOrder ? new Date(b.lastOrder).toLocaleDateString() : "—"}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
     );

@@ -20,14 +20,14 @@ export default async function DashboardPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-4xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
                 Bienvenido de nuevo, <span className="text-orange-600">{session.user?.name}</span>
             </h1>
-            <p className="text-lg text-gray-500">
+            <p className="text-base sm:text-lg text-gray-500">
                 Esto es lo que está pasando en tu cuenta de {role === "ADMIN" ? "administrador" : role === "BUSINESS" ? "negocio" : "conductor"} hoy.
             </p>
 
-            <div className="grid md:grid-cols-3 gap-6 mt-8">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
                 {role === "ADMIN" && (
                     <>
                         <Card className="hover:shadow-lg transition-shadow border-orange-100">

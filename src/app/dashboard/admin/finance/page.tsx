@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchWithToast } from "@/lib/toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { KPICard } from "@/components/ui/kpi-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +64,7 @@ export default function AdminFinancePage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Movimientos Financieros</h2>
+                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Movimientos Financieros</h2>
                     <p className="text-gray-500">Historial de ingresos por pedidos entregados.</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -87,38 +87,32 @@ export default function AdminFinancePage() {
                 </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-100">
-                                <DollarSign className="h-6 w-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Ingresos Totales</p>
-                                <p className="text-2xl font-bold text-emerald-600">
-                                    ${data.summary.totalRevenue.toFixed(2)}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-100">
-                                <Receipt className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Pedidos Entregados</p>
-                                <p className="text-2xl font-bold">{data.summary.totalOrders}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <KPICard icon={<DollarSign className="text-emerald-600" />} label="Ingresos Totales" value={`$${data.summary.totalRevenue.toFixed(2)}`} iconClassName="bg-emerald-100" />
+                <KPICard icon={<Receipt className="text-blue-600" />} label="Pedidos Entregados" value={data.summary.totalOrders} iconClassName="bg-blue-100" />
             </div>
 
-            <div className="border rounded-lg bg-white overflow-x-auto">
+            <div className="border rounded-lg bg-white overflow-hidden">
+                <div className="md:hidden divide-y">
+                    {movements.length === 0 && (
+                        <div className="p-8 text-center text-gray-500 text-sm">No hay movimientos con los filtros seleccionados.</div>
+                    )}
+                    {movements.map((m) => (
+                        <div key={m._id} className="p-4 space-y-1">
+                            <div className="flex justify-between items-start">
+                                <span className="font-medium text-sm">
+                                    {(m.businessId as any)?.businessDetails?.companyName || (m.businessId as any)?.name || "—"}
+                                </span>
+                                <span className="font-semibold text-emerald-600">${m.price.toFixed(2)}</span>
+                            </div>
+                            <p className="text-xs text-gray-500">{new Date(m.createdAt).toLocaleString()}</p>
+                            {(m.driverId as any)?.name && (
+                                <p className="text-xs text-gray-400">{(m.driverId as any).name}</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <div className="hidden md:block overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-50">
@@ -158,6 +152,7 @@ export default function AdminFinancePage() {
                         ))}
                     </TableBody>
                 </Table>
+                </div>
             </div>
         </div>
     );

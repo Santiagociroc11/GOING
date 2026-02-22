@@ -156,7 +156,29 @@ export default function AdminRatesPage() {
                 </div>
             </div>
 
-            <div className="border rounded-md bg-white shadow-sm overflow-x-auto">
+            <div className="border rounded-md bg-white shadow-sm overflow-hidden">
+                <div className="md:hidden divide-y">
+                    {rates.length === 0 && !loading && (
+                        <div className="p-8 text-center text-gray-500 text-sm">No hay tarifas configuradas.</div>
+                    )}
+                    {rates.map((rate) => (
+                        <div key={rate._id} className="p-4 flex justify-between items-center">
+                            <div>
+                                <p className="font-semibold text-gray-900">{rate.city}</p>
+                                <p className="text-sm text-gray-600">Base ${rate.basePrice.toFixed(2)} · ${rate.pricePerKm.toFixed(2)}/km</p>
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(rate)} title="Editar" className="text-orange-600 h-9 w-9">
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(rate._id)} title="Eliminar" className="text-red-500 h-9 w-9">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="hidden md:block overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -191,6 +213,7 @@ export default function AdminRatesPage() {
                         ))}
                     </TableBody>
                 </Table>
+                </div>
             </div>
         </div>
     );

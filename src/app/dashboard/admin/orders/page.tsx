@@ -108,7 +108,7 @@ export default function AdminOrdersPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Flujo de Pedidos</h2>
+                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Flujo de Pedidos</h2>
                     <p className="text-gray-500">Monitorea el estado de todas las entregas en tiempo real.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -144,10 +144,10 @@ export default function AdminOrdersPage() {
                 </div>
             </div>
 
-            {/* Pipeline visual */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Pipeline visual: horizontal scroll en móvil, grid en desktop */}
+            <div className="flex overflow-x-auto gap-4 pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 snap-x snap-mandatory [scrollbar-width:thin] overscroll-x-contain">
                 {STATUS_FLOW.map((status) => (
-                    <div key={status.key} className="flex flex-col">
+                    <div key={status.key} className="flex flex-col min-w-[280px] sm:min-w-0 shrink-0 sm:shrink snap-start">
                         <div className="flex items-center justify-between mb-3">
                             <Badge variant="outline" className={status.color}>
                                 {status.label}
@@ -156,7 +156,7 @@ export default function AdminOrdersPage() {
                                 {ordersByStatus[status.key]?.length ?? 0}
                             </span>
                         </div>
-                        <div className="space-y-3 min-h-[120px]">
+                        <div className="space-y-3 min-h-[100px] max-h-[70vh] overflow-y-auto overscroll-contain">
                             {(ordersByStatus[status.key] ?? []).map((order) => (
                                 <OrderCard
                                     key={order._id}
@@ -222,7 +222,7 @@ function OrderCard({
 
     return (
         <Card className="overflow-hidden hover:shadow-md transition-shadow">
-            <CardHeader className="p-4 pb-2">
+            <CardHeader className="p-3 sm:p-4 pb-2">
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                         <p className="font-mono text-xs text-gray-500">#{order._id.slice(-8).toUpperCase()}</p>
@@ -254,7 +254,7 @@ function OrderCard({
                 </div>
             </CardHeader>
             {!compact && (
-                <CardContent className="p-4 pt-0 space-y-2 text-sm">
+                <CardContent className="p-3 sm:p-4 pt-0 space-y-2 text-sm">
                     <div className="flex items-start gap-2">
                         <Building2 className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" />
                         <p className="truncate" title={businessName}>
