@@ -18,6 +18,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ message: "Invalid subscription" }, { status: 400 });
     }
 
+    if (process.env.NODE_ENV === "development") {
+        console.log("[Push] Subscribe:", userId, "endpoint:", endpoint?.slice(0, 50) + "...");
+    }
+
     const userAgent = req.headers.get("user-agent") || undefined;
 
     await dbConnect();

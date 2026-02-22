@@ -10,8 +10,12 @@ function toBase64UrlSafe(value: string): string {
     return value.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-const vapidPublic = process.env.VAPID_PUBLIC_KEY;
-const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
+function sanitizeVapidKey(key: string): string {
+    return key.replace(/\s/g, "").trim();
+}
+
+const vapidPublic = process.env.VAPID_PUBLIC_KEY ? sanitizeVapidKey(process.env.VAPID_PUBLIC_KEY) : undefined;
+const vapidPrivate = process.env.VAPID_PRIVATE_KEY ? sanitizeVapidKey(process.env.VAPID_PRIVATE_KEY) : undefined;
 const vapidSubject = process.env.VAPID_SUBJECT || "mailto:support@going.app";
 
 if (vapidPublic && vapidPrivate) {

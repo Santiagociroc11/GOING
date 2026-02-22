@@ -40,8 +40,8 @@ self.addEventListener("push", (event) => {
                 const baseUrl = self.location.origin;
                 const options: NotificationOptions = {
                     body: data.body || "",
-                    icon: `${baseUrl}/icon`,
-                    badge: `${baseUrl}/icon`,
+                    icon: `${baseUrl}/icons/192`,
+                    badge: `${baseUrl}/icons/192`,
                     data: { url: data.url || "/" },
                     tag: `going-${Date.now()}`,
                     requireInteraction: false,

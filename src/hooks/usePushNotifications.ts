@@ -17,6 +17,8 @@ export function usePushNotifications() {
 
         setLoading(true);
         try {
+            const reg = await navigator.serviceWorker.ready;
+            await reg.update();
             const perm = await Notification.requestPermission();
             if (perm === "denied") {
                 setState("denied");
@@ -32,8 +34,7 @@ export function usePushNotifications() {
                 return;
             }
 
-            const reg = await navigator.serviceWorker.ready;
-            const keyBytes = urlBase64ToUint8Array(publicKey);
+            const keyBytes = urlBase64ToUint8Array(publicKey.trim());
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: keyBytes as BufferSource,
@@ -50,6 +51,7 @@ export function usePushNotifications() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
+                credentials: "include",
             });
 
             if (!res.ok) {
