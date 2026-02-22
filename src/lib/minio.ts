@@ -1,21 +1,37 @@
 import * as Minio from "minio";
 
-const endpoint = process.env.MINIO_ENDPOINT;
-const port = parseInt(process.env.MINIO_PORT || "9000", 10);
-const useSSL = process.env.MINIO_USE_SSL === "true";
-const accessKey = process.env.MINIO_ACCESS_KEY;
-const secretKey = process.env.MINIO_SECRET_KEY;
-const bucket = process.env.MINIO_BUCKET || "going";
+// Soporta MINIO_* y STORAGE_* (compatible con n8n, etc.)
+function parseEndpoint(): { host: string; port: number; useSSL: boolean } | null {
+    const raw =
+        process.env.MINIO_ENDPOINT ||
+        process.env.STORAGE_ENDPOINT?.replace(/\/$/, "");
+    if (!raw) return null;
+    try {
+        const url = raw.startsWith("http") ? new URL(raw) : new URL(`http://${raw}`);
+        return {
+            host: url.hostname,
+            port: url.port ? parseInt(url.port, 10) : 9000,
+            useSSL: url.protocol === "https:",
+        };
+    } catch {
+        return { host: raw, port: parseInt(process.env.MINIO_PORT || "9000", 10), useSSL: false };
+    }
+}
+
+const parsed = parseEndpoint();
+const accessKey = process.env.MINIO_ACCESS_KEY || process.env.STORAGE_ACCESS_KEY_ID;
+const secretKey = process.env.MINIO_SECRET_KEY || process.env.STORAGE_SECRET_ACCESS_KEY;
+const bucket = process.env.MINIO_BUCKET || process.env.STORAGE_BUCKET_NAME || "going";
 
 let client: Minio.Client | null = null;
 
 export function getMinioClient(): Minio.Client | null {
-    if (!endpoint || !accessKey || !secretKey) return null;
+    if (!parsed || !accessKey || !secretKey) return null;
     if (!client) {
         client = new Minio.Client({
-            endPoint: endpoint,
-            port,
-            useSSL,
+            endPoint: parsed.host,
+            port: parsed.port,
+            useSSL: parsed.useSSL,
             accessKey,
             secretKey,
         });
@@ -24,7 +40,7 @@ export function getMinioClient(): Minio.Client | null {
 }
 
 export function isMinioConfigured(): boolean {
-    return !!(endpoint && accessKey && secretKey);
+    return !!(parsed && accessKey && secretKey);
 }
 
 export async function ensureBucket(): Promise<boolean> {
@@ -49,7 +65,7 @@ export async function uploadFile(
     try {
         await ensureBucket();
         await mc.putObject(bucket, objectName, buffer, buffer.length, { "Content-Type": contentType });
-        const publicUrl = process.env.MINIO_PUBLIC_URL;
+        const publicUrl = process.env.MINIO_PUBLIC_URL || process.env.STORAGE_PUBLIC_URL;
         if (publicUrl) {
             return `${publicUrl.replace(/\/$/, "")}/${bucket}/${objectName}`;
         }
