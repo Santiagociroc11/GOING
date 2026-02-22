@@ -5,8 +5,9 @@ import { fetchWithToast, mutateWithToast, toast } from "@/lib/toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, Truck, Package } from "lucide-react";
+import { RefreshCcw, Truck, Package, XCircle, Eye } from "lucide-react";
 import { RateOrderButton } from "@/components/RateOrderButton";
+import { OrderDetailModal } from "@/components/OrderDetailModal";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
@@ -20,16 +21,20 @@ type Order = {
     productValue?: number;
     codCollectedAt?: string;
     hasRated?: boolean;
-    pickupInfo: { address: string };
-    dropoffInfo: { address: string };
+    pickupInfo: { address: string; contactName?: string; contactPhone?: string };
+    dropoffInfo: { address: string; contactName?: string; contactPhone?: string };
     driverId?: { name: string; driverDetails?: { vehicleType?: string } } | null;
+    pickupProofUrl?: string;
+    deliveryProofUrl?: string;
     createdAt: string;
+    updatedAt?: string;
 };
 
 export default function BusinessOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [pagination, setPagination] = useState<{ total: number; hasMore: boolean; page: number } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [detailOrder, setDetailOrder] = useState<Order | null>(null);
 
     const fetchOrders = async (page = 1) => {
         setLoading(true);
@@ -55,6 +60,18 @@ export default function BusinessOrdersPage() {
         }
     };
 
+    const cancelOrder = async (orderId: string) => {
+        if (!confirm("¿Cancelar este pedido? Se devolverá el saldo si estaba prepagado.")) return;
+        const { ok } = await mutateWithToast(`/api/orders/${orderId}/status`, {
+            method: "PUT",
+            body: { status: "CANCELLED" },
+        });
+        if (ok) {
+            toast.success("Pedido cancelado");
+            fetchOrders(1);
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "PENDING": return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">Esperando Domiciliario</Badge>;
@@ -68,6 +85,19 @@ export default function BusinessOrdersPage() {
 
     const activeOrders = orders.filter((o) => ["PENDING", "ACCEPTED", "PICKED_UP"].includes(o.status));
     const completedOrders = orders.filter((o) => ["DELIVERED", "CANCELLED"].includes(o.status));
+
+    const handleCancelFromModal = async (orderId: string) => {
+        if (!confirm("¿Cancelar este pedido? Se devolverá el saldo si estaba prepagado.")) return;
+        const { ok } = await mutateWithToast(`/api/orders/${orderId}/status`, {
+            method: "PUT",
+            body: { status: "CANCELLED" },
+        });
+        if (ok) {
+            toast.success("Pedido cancelado");
+            setDetailOrder(null);
+            fetchOrders(1);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -105,6 +135,14 @@ export default function BusinessOrdersPage() {
                                         {order.driverId ? `${order.driverId.name}${order.driverId.driverDetails?.vehicleType ? ` (${order.driverId.driverDetails.vehicleType})` : ""}` : "Esperando..."}
                                     </p>
                                     <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString()}</p>
+                                    <Button size="sm" variant="outline" className="border-orange-200 hover:bg-orange-50" onClick={() => setDetailOrder(order)}>
+                                        <Eye className="h-4 w-4 mr-1" /> Ver detalles
+                                    </Button>
+                                    {["PENDING", "ACCEPTED"].includes(order.status) && (
+                                        <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => cancelOrder(order._id)}>
+                                            <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                                        </Button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -141,7 +179,19 @@ export default function BusinessOrdersPage() {
                                                 <span className="text-gray-400 text-sm">Esperando...</span>
                                             )}
                                         </TableCell>
-                                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {getStatusBadge(order.status)}
+                                                <Button size="sm" variant="ghost" className="text-orange-600 hover:bg-orange-50" onClick={() => setDetailOrder(order)}>
+                                                    <Eye className="h-4 w-4 mr-1" /> Ver
+                                                </Button>
+                                                {["PENDING", "ACCEPTED"].includes(order.status) && (
+                                                    <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => cancelOrder(order._id)}>
+                                                        <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -174,6 +224,9 @@ export default function BusinessOrdersPage() {
                                     <RateOrderButton orderId={order._id} targetName={order.driverId.name} rated={order.hasRated} onRated={() => fetchOrders(1)} />
                                 )}
                                 <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString()}</p>
+                                <Button size="sm" variant="outline" className="border-orange-200 hover:bg-orange-50 w-fit" onClick={() => setDetailOrder(order)}>
+                                    <Eye className="h-4 w-4 mr-1" /> Ver detalles
+                                </Button>
                             </div>
                         ))}
                     </div>
@@ -214,6 +267,9 @@ export default function BusinessOrdersPage() {
                                             {order.status === "DELIVERED" && order.driverId && (
                                                 <RateOrderButton orderId={order._id} targetName={order.driverId.name} rated={order.hasRated} onRated={() => fetchOrders(1)} />
                                             )}
+                                            <Button size="sm" variant="ghost" className="text-orange-600 hover:bg-orange-50 w-fit" onClick={() => setDetailOrder(order)}>
+                                                <Eye className="h-4 w-4 mr-1" /> Ver detalles
+                                            </Button>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
@@ -224,6 +280,15 @@ export default function BusinessOrdersPage() {
                     </div>
                 </div>
             </div>
+
+            <OrderDetailModal
+                order={detailOrder}
+                open={!!detailOrder}
+                onOpenChange={(open) => !open && setDetailOrder(null)}
+                onCancel={handleCancelFromModal}
+                onConfirmCod={confirmCod}
+                onRated={() => fetchOrders(1)}
+            />
         </div>
     );
 }
