@@ -104,8 +104,8 @@ export default function AdminNotificationsPage() {
         });
         setTestLoading(false);
         if (data && typeof data === "object") {
-            const res = data as typeof testResult;
-            setTestResult(res);
+            const res = data as { targetUserId?: string };
+            setTestResult(data as typeof testResult);
             const uid = testUserId || res.targetUserId || "";
             setLogsUserId(uid);
             fetchPushLogs(uid || undefined);
