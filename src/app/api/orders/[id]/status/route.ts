@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getEffectiveSession } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
-import { sendPushToUser } from "@/lib/push";
+import { sendPushIfEnabled } from "@/lib/push";
 import {
     creditDriverBalance,
     refundBusinessBalance,
@@ -47,7 +47,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 if (!updated) {
                     return NextResponse.json({ message: "El pedido ya fue aceptado por otro conductor" }, { status: 409 });
                 }
-                sendPushToUser(updated.businessId.toString(), {
+                sendPushIfEnabled("businessOrderAccepted", updated.businessId.toString(), {
                     title: "Pedido aceptado",
                     body: `Un domiciliario tomó tu pedido #${updated._id.toString().slice(-6).toUpperCase()}`,
                     url: "/dashboard/business/orders",
@@ -93,14 +93,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         const shortId = order._id.toString().slice(-6).toUpperCase();
         if (status === "PICKED_UP" && order.businessId) {
-            sendPushToUser(order.businessId.toString(), {
+            sendPushIfEnabled("businessOrderPickedUp", order.businessId.toString(), {
                 title: "Pedido en camino",
                 body: `Tu pedido #${shortId} está siendo entregado`,
                 url: "/dashboard/business/orders",
             }).catch(() => {});
         }
         if (status === "DELIVERED" && order.businessId) {
-            sendPushToUser(order.businessId.toString(), {
+            sendPushIfEnabled("businessOrderDelivered", order.businessId.toString(), {
                 title: "Pedido entregado",
                 body: `Tu pedido #${shortId} fue entregado`,
                 url: "/dashboard/business/orders",
@@ -108,14 +108,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
         if (status === "CANCELLED") {
             if (order.businessId) {
-                sendPushToUser(order.businessId.toString(), {
+                sendPushIfEnabled("businessOrderCancelled", order.businessId.toString(), {
                     title: "Pedido cancelado",
                     body: `El pedido #${shortId} fue cancelado`,
                     url: "/dashboard/business/orders",
                 }).catch(() => {});
             }
             if (order.driverId) {
-                sendPushToUser(order.driverId.toString(), {
+                sendPushIfEnabled("driverOrderCancelled", order.driverId.toString(), {
                     title: "Pedido cancelado",
                     body: `El pedido #${shortId} fue cancelado`,
                     url: "/dashboard/driver/orders",

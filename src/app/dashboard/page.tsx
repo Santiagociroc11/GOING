@@ -113,6 +113,17 @@ export default async function DashboardPage() {
                                 </Link>
                             </CardContent>
                         </Card>
+                        <Card className="hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                                <CardTitle>Notificaciones</CardTitle>
+                                <CardDescription>Activa o desactiva notificaciones push por tipo.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/dashboard/admin/notifications">
+                                    <Button variant="outline" className="w-full">Configurar</Button>
+                                </Link>
+                            </CardContent>
+                        </Card>
                     </>
                 )}
 

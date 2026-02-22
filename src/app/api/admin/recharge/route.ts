@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import { rechargeBusinessBalance } from "@/lib/wallet";
+import { sendPushIfEnabled } from "@/lib/push";
 
 export async function POST(req: Request) {
     try {
@@ -32,6 +33,12 @@ export async function POST(req: Request) {
         if (!result.ok) {
             return NextResponse.json({ message: result.message }, { status: 400 });
         }
+
+        sendPushIfEnabled("businessRecharge", businessId, {
+            title: "Recarga de saldo",
+            body: `Se recargó tu saldo con $${Number(amount).toLocaleString()}`,
+            url: "/dashboard",
+        }).catch(() => {});
 
         return NextResponse.json({ message: "Recarga exitosa" });
     } catch (error) {

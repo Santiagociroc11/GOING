@@ -5,6 +5,7 @@ import Order from "@/models/Order";
 import Rate from "@/models/Rate";
 import User from "@/models/User";
 import { deductBusinessBalance } from "@/lib/wallet";
+import { sendPushToUsersIfEnabled } from "@/lib/push";
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371; // Radius of the earth in km
@@ -124,6 +125,19 @@ export async function POST(req: Request) {
         }
 
         await newOrder.save();
+
+        // Notificar a domiciliarios en la misma ciudad
+        const driversInCity = await User.find({ role: "DRIVER", city: { $regex: new RegExp(`^${city}$`, "i") }, active: true })
+            .select("_id")
+            .lean();
+        const driverIds = driversInCity.map((d) => d._id.toString());
+        const shortId = newOrder._id.toString().slice(-6).toUpperCase();
+        sendPushToUsersIfEnabled("driverNewOrder", driverIds, {
+            title: "Nuevo pedido disponible",
+            body: `Pedido #${shortId} en ${city}. Revisa el feed de pedidos.`,
+            url: "/dashboard/driver/feed",
+        }).catch(() => {});
+
         return NextResponse.json(newOrder, { status: 201 });
     } catch (error: any) {
         console.error("Order creation error:", error);
