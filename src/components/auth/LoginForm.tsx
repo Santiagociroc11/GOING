@@ -36,11 +36,19 @@ export default function LoginForm() {
             });
 
             if (!result) {
+                console.error("[Login] Result null:", { result });
                 toast.error("Error de conexión. Verifica tu internet e intenta de nuevo.");
                 return;
             }
 
             if (result.error) {
+                console.error("[Login] Error completo:", {
+                    error: result.error,
+                    status: result.status,
+                    url: result.url,
+                    ok: result.ok,
+                    fullResult: result,
+                });
                 const err = String(result.error).toLowerCase();
                 const mensaje =
                     err.includes("credential") ||
@@ -58,7 +66,8 @@ export default function LoginForm() {
             toast.success("¡Bienvenido de nuevo!");
             router.push("/dashboard");
             router.refresh();
-        } catch {
+        } catch (err) {
+            console.error("[Login] Excepción:", err);
             toast.error("Error inesperado. Intenta de nuevo más tarde.");
         } finally {
             setLoading(false);
