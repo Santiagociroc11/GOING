@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, PackageCheck, PackageOpen, Truck, MoreVertical } from "lucide-react";
@@ -24,15 +24,9 @@ export default function DriverOrdersPage() {
 
     const fetchOrders = async () => {
         setLoading(true);
-        try {
-            const res = await fetch("/api/orders"); // Driver GET /api/orders returns their accepted orders
-            const data = await res.json();
-            if (res.ok) setOrders(data);
-        } catch {
-            toast.error("Error al cargar pedidos");
-        } finally {
-            setLoading(false);
-        }
+        const { data, error } = await fetchWithToast<Order[]>("/api/orders");
+        if (!error && data) setOrders(data);
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -40,22 +34,13 @@ export default function DriverOrdersPage() {
     }, []);
 
     const updateStatus = async (orderId: string, newStatus: string) => {
-        try {
-            const res = await fetch(`/api/orders/${orderId}/status`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            if (res.ok) {
-                toast.success(`Pedido marcado como ${newStatus === 'PICKED_UP' ? 'RECOGIDO' : newStatus === 'DELIVERED' ? 'ENTREGADO' : newStatus}`);
-                fetchOrders();
-            } else {
-                const err = await res.json();
-                toast.error(err.message || "Error al actualizar estado");
-            }
-        } catch {
-            toast.error("Error de red");
+        const { ok } = await mutateWithToast(`/api/orders/${orderId}/status`, {
+            method: "PUT",
+            body: { status: newStatus },
+        });
+        if (ok) {
+            toast.success(`Pedido marcado como ${newStatus === "PICKED_UP" ? "RECOGIDO" : newStatus === "DELIVERED" ? "ENTREGADO" : newStatus}`);
+            fetchOrders();
         }
     };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Package, DollarSign, Clock } from "lucide-react";
@@ -24,45 +24,27 @@ export default function DriverFeedPage() {
 
     const fetchFeed = async () => {
         setLoading(true);
-        try {
-            // Fetching all pending orders for the driver's city
-            const res = await fetch("/api/feed"); // We'll create this specific feed endpoint
-            const data = await res.json();
-            if (res.ok) setOrders(data);
-        } catch {
-            toast.error("Error al cargar el feed");
-        } finally {
-            setLoading(false);
-        }
+        const { data, error } = await fetchWithToast<Order[]>("/api/feed");
+        if (!error && data) setOrders(data);
+        setLoading(false);
     };
 
     useEffect(() => {
         fetchFeed();
-        const interval = setInterval(fetchFeed, 30000); // Polling every 30s
+        const interval = setInterval(fetchFeed, 30000);
         return () => clearInterval(interval);
     }, []);
 
     const handleAccept = async (orderId: string) => {
         setActingOn(orderId);
-        try {
-            const res = await fetch(`/api/orders/${orderId}/status`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "ACCEPTED" }),
-            });
-
-            if (res.ok) {
-                toast.success("¡Entrega Aceptada! Mírala en Mis Entregas.");
-                // Remove from feed
-                setOrders(orders.filter((o) => o._id !== orderId));
-            } else {
-                const err = await res.json();
-                toast.error(err.message || "Error al aceptar el pedido");
-            }
-        } catch {
-            toast.error("Error de red");
-        } finally {
-            setActingOn(null);
+        const { ok } = await mutateWithToast(`/api/orders/${orderId}/status`, {
+            method: "PUT",
+            body: { status: "ACCEPTED" },
+        });
+        setActingOn(null);
+        if (ok) {
+            toast.success("¡Entrega Aceptada! Mírala en Mis Entregas.");
+            setOrders((prev) => prev.filter((o) => o._id !== orderId));
         }
     };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,15 +32,9 @@ export default function AdminRatesPage() {
 
     const fetchRates = async () => {
         setLoading(true);
-        try {
-            const res = await fetch("/api/admin/rates");
-            const data = await res.json();
-            if (res.ok) setRates(data);
-        } catch {
-            toast.error("Error al cargar tarifas");
-        } finally {
-            setLoading(false);
-        }
+        const { data, error } = await fetchWithToast<Rate[]>("/api/admin/rates");
+        if (!error && data) setRates(data);
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -48,45 +42,26 @@ export default function AdminRatesPage() {
     }, []);
 
     const handleAddRate = async () => {
-        try {
-            const res = await fetch("/api/admin/rates", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    city: newCity,
-                    basePrice: Number(newBasePrice),
-                    pricePerKm: Number(newPricePerKm),
-                }),
-            });
-
-            if (res.ok) {
-                toast.success("Tarifa añadida exitosamente");
-                setIsDialogOpen(false);
-                setNewCity("");
-                setNewBasePrice("");
-                setNewPricePerKm("");
-                fetchRates();
-            } else {
-                const error = await res.json();
-                toast.error(error.message || "Error al añadir tarifa");
-            }
-        } catch (error) {
-            toast.error("Ocurrió un error");
+        const { ok } = await mutateWithToast("/api/admin/rates", {
+            method: "POST",
+            body: { city: newCity, basePrice: Number(newBasePrice), pricePerKm: Number(newPricePerKm) },
+        });
+        if (ok) {
+            toast.success("Tarifa añadida exitosamente");
+            setIsDialogOpen(false);
+            setNewCity("");
+            setNewBasePrice("");
+            setNewPricePerKm("");
+            fetchRates();
         }
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm("¿Estás seguro de que deseas eliminar esta tarifa?")) return;
-        try {
-            const res = await fetch(`/api/admin/rates/${id}`, { method: "DELETE" });
-            if (res.ok) {
-                toast.success("Tarifa eliminada");
-                fetchRates();
-            } else {
-                toast.error("Error al eliminar tarifa");
-            }
-        } catch {
-            toast.error("Ocurrió un error");
+        const { ok } = await mutateWithToast(`/api/admin/rates/${id}`, { method: "DELETE" });
+        if (ok) {
+            toast.success("Tarifa eliminada");
+            fetchRates();
         }
     };
 
@@ -99,27 +74,15 @@ export default function AdminRatesPage() {
 
     const handleEditRate = async () => {
         if (!editingRate) return;
-        try {
-            const res = await fetch(`/api/admin/rates/${editingRate._id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    basePrice: Number(editBasePrice),
-                    pricePerKm: Number(editPricePerKm),
-                }),
-            });
-
-            if (res.ok) {
-                toast.success("Tarifa actualizada");
-                setEditDialogOpen(false);
-                setEditingRate(null);
-                fetchRates();
-            } else {
-                const error = await res.json();
-                toast.error(error.message || "Error al actualizar tarifa");
-            }
-        } catch {
-            toast.error("Ocurrió un error");
+        const { ok } = await mutateWithToast(`/api/admin/rates/${editingRate._id}`, {
+            method: "PATCH",
+            body: { basePrice: Number(editBasePrice), pricePerKm: Number(editPricePerKm) },
+        });
+        if (ok) {
+            toast.success("Tarifa actualizada");
+            setEditDialogOpen(false);
+            setEditingRate(null);
+            fetchRates();
         }
     };
 

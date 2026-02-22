@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast, mutateWithToast, fetchWithToast } from "@/lib/toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,15 +41,9 @@ export default function AdminUsersPage() {
 
     const fetchUsers = async () => {
         setLoading(true);
-        try {
-            const res = await fetch("/api/admin/users");
-            const data = await res.json();
-            if (res.ok) setUsers(data);
-        } catch {
-            toast.error("Error al cargar usuarios");
-        } finally {
-            setLoading(false);
-        }
+        const { data, error } = await fetchWithToast<User[]>("/api/admin/users");
+        if (!error && data) setUsers(data);
+        setLoading(false);
     };
 
     useEffect(() => {
@@ -75,37 +69,26 @@ export default function AdminUsersPage() {
         }
 
         setCreating(true);
-        try {
-            const res = await fetch("/api/admin/users", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: newName.trim(),
-                    email: newEmail.trim(),
-                    password: newPassword,
-                    role: newRole,
-                    city: newCity.trim(),
-                    active: true,
-                    storePlainPassword,
-                    businessDetails: newRole === "BUSINESS" ? { companyName: newCompanyName || undefined } : undefined,
-                    driverDetails: newRole === "DRIVER" ? { vehicleType: newVehicleType || undefined, licensePlate: newLicensePlate || undefined } : undefined,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                toast.success("Usuario creado correctamente");
-                setIsDialogOpen(false);
-                resetForm();
-                fetchUsers();
-            } else {
-                toast.error(data.message || "Error al crear usuario");
-            }
-        } catch {
-            toast.error("Ocurrió un error");
-        } finally {
-            setCreating(false);
+        const { ok } = await mutateWithToast("/api/admin/users", {
+            method: "POST",
+            body: {
+                name: newName.trim(),
+                email: newEmail.trim(),
+                password: newPassword,
+                role: newRole,
+                city: newCity.trim(),
+                active: true,
+                storePlainPassword,
+                businessDetails: newRole === "BUSINESS" ? { companyName: newCompanyName || undefined } : undefined,
+                driverDetails: newRole === "DRIVER" ? { vehicleType: newVehicleType || undefined, licensePlate: newLicensePlate || undefined } : undefined,
+            },
+        });
+        setCreating(false);
+        if (ok) {
+            toast.success("Usuario creado correctamente");
+            setIsDialogOpen(false);
+            resetForm();
+            fetchUsers();
         }
     };
 

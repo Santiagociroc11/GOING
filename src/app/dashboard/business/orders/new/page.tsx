@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast, mutateWithToast } from "@/lib/toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,43 +49,29 @@ export default function NewOrderPage() {
     });
 
     const onSubmit = async (values: z.infer<typeof orderSchema>) => {
-        try {
-            setLoading(true);
+        setLoading(true);
+        const payload = {
+            details: values.details,
+            pickupInfo: {
+                address: values.pickupAddress,
+                contactName: values.pickupContactName,
+                contactPhone: values.pickupContactPhone,
+                coordinates: getPickupCoordinates(),
+            },
+            dropoffInfo: {
+                address: values.dropoffAddress,
+                contactName: values.dropoffContactName,
+                contactPhone: values.dropoffContactPhone,
+                coordinates: getDropoffCoordinates(),
+            },
+        };
 
-            const payload = {
-                details: values.details,
-                pickupInfo: {
-                    address: values.pickupAddress,
-                    contactName: values.pickupContactName,
-                    contactPhone: values.pickupContactPhone,
-                    coordinates: getPickupCoordinates(),
-                },
-                dropoffInfo: {
-                    address: values.dropoffAddress,
-                    contactName: values.dropoffContactName,
-                    contactPhone: values.dropoffContactPhone,
-                    coordinates: getDropoffCoordinates(),
-                }
-            };
-
-            const res = await fetch("/api/orders", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (res.ok) {
-                toast.success("¡Pedido creado exitosamente!");
-                router.push("/dashboard/business/orders");
-                router.refresh();
-            } else {
-                const errorData = await res.json();
-                toast.error(errorData.message || "Error al crear el pedido");
-            }
-        } catch (error) {
-            toast.error("Ocurrió un error");
-        } finally {
-            setLoading(false);
+        const { ok } = await mutateWithToast("/api/orders", { method: "POST", body: payload });
+        setLoading(false);
+        if (ok) {
+            toast.success("¡Pedido creado exitosamente!");
+            router.push("/dashboard/business/orders");
+            router.refresh();
         }
     };
 

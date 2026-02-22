@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast, mutateWithToast } from "@/lib/toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,35 +58,22 @@ export default function RegisterForm() {
     });
 
     const onSubmit = async (values: z.infer<typeof registerSchema>) => {
-        try {
-            setLoading(true);
-            const payload = {
-                name: values.name,
-                email: values.email,
-                password: values.password,
-                role: values.role,
-                city: values.city,
-                businessDetails: values.role === "BUSINESS" ? { companyName: values.companyName } : undefined,
-                driverDetails: values.role === "DRIVER" ? { vehicleType: values.vehicleType, licensePlate: values.licensePlate } : undefined,
-            };
+        setLoading(true);
+        const payload = {
+            name: values.name,
+            email: values.email,
+            password: values.password,
+            role: values.role,
+            city: values.city,
+            businessDetails: values.role === "BUSINESS" ? { companyName: values.companyName } : undefined,
+            driverDetails: values.role === "DRIVER" ? { vehicleType: values.vehicleType, licensePlate: values.licensePlate } : undefined,
+        };
 
-            const res = await fetch("/api/auth/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (res.ok) {
-                toast.success("¡Registro exitoso! Ya puedes iniciar sesión.");
-                router.push("/login");
-            } else {
-                const errorData = await res.json();
-                toast.error(errorData.message || "Error en el registro");
-            }
-        } catch (error) {
-            toast.error("Ocurrió un error");
-        } finally {
-            setLoading(false);
+        const { ok } = await mutateWithToast("/api/auth/register", { method: "POST", body: payload });
+        setLoading(false);
+        if (ok) {
+            toast.success("¡Registro exitoso! Ya puedes iniciar sesión.");
+            router.push("/login");
         }
     };
 

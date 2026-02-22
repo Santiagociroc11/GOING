@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { fetchWithToast } from "@/lib/toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,15 +24,9 @@ export default function BusinessOrdersPage() {
 
     const fetchOrders = async () => {
         setLoading(true);
-        try {
-            const res = await fetch("/api/orders");
-            const data = await res.json();
-            if (res.ok) setOrders(data);
-        } catch {
-            toast.error("Error al cargar pedidos");
-        } finally {
-            setLoading(false);
-        }
+        const { data, error } = await fetchWithToast<Order[]>("/api/orders");
+        if (!error && data) setOrders(data);
+        setLoading(false);
     };
 
     useEffect(() => {
