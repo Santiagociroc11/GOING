@@ -156,7 +156,7 @@ export default function AdminRatesPage() {
                 </div>
             </div>
 
-            <div className="border rounded-md bg-white shadow-sm">
+            <div className="border rounded-md bg-white shadow-sm overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>

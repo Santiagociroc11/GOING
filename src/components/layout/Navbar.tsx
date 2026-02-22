@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Package, Route, Settings, UserCircle, Users, UserX } from "lucide-react";
+import MobileNav from "@/components/layout/MobileNav";
 import type { Session } from "next-auth";
 
 type EffectiveSession = Session & { isImpersonating?: boolean; realUser?: Session["user"] };
@@ -30,11 +31,14 @@ export default function Navbar({ effectiveSession }: { effectiveSession?: Effect
                     </Button>
                 </div>
             )}
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                <Link href="/dashboard" className="flex items-center gap-2 font-bold text-2xl tracking-tighter text-orange-600">
-                    <Package className="h-6 w-6" />
-                    Going
-                </Link>
+            <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <MobileNav effectiveSession={effectiveSession} />
+                    <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl sm:text-2xl tracking-tighter text-orange-600 shrink-0">
+                        <Package className="h-5 w-5 sm:h-6 w-6" />
+                        Going
+                    </Link>
+                </div>
 
                 {displaySession ? (
                     <div className="flex items-center gap-6">
@@ -64,7 +68,7 @@ export default function Navbar({ effectiveSession }: { effectiveSession?: Effect
                             )}
                         </div>
 
-                        <div className="flex items-center gap-3 border-l pl-6">
+                        <div className="flex items-center gap-2 sm:gap-3 border-l pl-4 sm:pl-6">
                             <span className="text-sm font-medium flex items-center gap-2">
                                 <UserCircle className="h-5 w-5 text-gray-400" />
                                 <span className="hidden sm:inline-block">{displaySession.user?.name}</span>

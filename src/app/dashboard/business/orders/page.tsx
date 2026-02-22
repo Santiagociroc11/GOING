@@ -68,7 +68,7 @@ export default function BusinessOrdersPage() {
                         <Package className="h-5 w-5 text-orange-600" />
                         En curso ({activeOrders.length})
                     </h3>
-                    <div className="border rounded-lg bg-white overflow-hidden">
+                    <div className="border rounded-lg bg-white overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-orange-50/50">
@@ -113,7 +113,7 @@ export default function BusinessOrdersPage() {
 
             <div>
                 <h3 className="text-lg font-semibold mb-3">Historial</h3>
-                <div className="border rounded-lg bg-white overflow-hidden">
+                <div className="border rounded-lg bg-white overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gray-50/50">

@@ -13,7 +13,7 @@ export default async function DashboardLayout({
             <Navbar effectiveSession={effectiveSession} />
             <div className="flex flex-1">
                 <Sidebar effectiveSession={effectiveSession} />
-                <main className="flex-1 min-w-0 container mx-auto px-4 py-8">
+                <main className="flex-1 min-w-0 container mx-auto px-3 sm:px-4 py-6 sm:py-8">
                     {children}
                 </main>
             </div>

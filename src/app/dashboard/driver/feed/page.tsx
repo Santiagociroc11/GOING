@@ -50,13 +50,13 @@ export default function DriverFeedPage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="max-w-4xl mx-auto space-y-6 px-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Feed de Entregas en Vivo</h2>
-                    <p className="text-gray-500">Pedidos disponibles en tu ciudad esperando un domiciliario.</p>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Feed de Entregas en Vivo</h2>
+                    <p className="text-gray-500 text-sm sm:text-base">Pedidos disponibles en tu ciudad esperando un domiciliario.</p>
                 </div>
-                <Button variant="outline" onClick={fetchFeed} disabled={loading} className="hover:text-orange-600 border-orange-200">
+                <Button variant="outline" onClick={fetchFeed} disabled={loading} className="hover:text-orange-600 border-orange-200 min-h-[44px] shrink-0">
                     {loading ? "Actualizando..." : "Actualizar Feed"}
                 </Button>
             </div>
@@ -112,7 +112,7 @@ export default function DriverFeedPage() {
                             <Button
                                 onClick={() => handleAccept(order._id)}
                                 disabled={actingOn === order._id}
-                                className="w-full h-12 text-lg bg-orange-600 hover:bg-orange-700 shadow-md transition-transform hover:-translate-y-0.5"
+                                className="w-full min-h-[48px] h-12 text-base sm:text-lg bg-orange-600 hover:bg-orange-700 shadow-md transition-transform hover:-translate-y-0.5 touch-manipulation"
                             >
                                 {actingOn === order._id ? "Aceptando..." : "Aceptar Entrega"}
                             </Button>

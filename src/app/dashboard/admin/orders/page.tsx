@@ -145,7 +145,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Pipeline visual */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {STATUS_FLOW.map((status) => (
                     <div key={status.key} className="flex flex-col">
                         <div className="flex items-center justify-between mb-3">

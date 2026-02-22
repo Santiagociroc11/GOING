@@ -125,7 +125,7 @@ export default function AdminBusinessesPage() {
                 </Card>
             </div>
 
-            <div className="border rounded-lg bg-white overflow-hidden">
+            <div className="border rounded-lg bg-white overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-50">
