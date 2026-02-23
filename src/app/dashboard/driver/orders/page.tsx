@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
+import { useDriverLocationSender } from "@/hooks/useDriverLocationSender";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, PackageCheck, PackageOpen, Truck } from "lucide-react";
@@ -68,6 +69,8 @@ export default function DriverOrdersPage() {
 
     const activeOrders = orders.filter(o => ["ACCEPTED", "PICKED_UP"].includes(o.status));
     const pastOrders = orders.filter(o => ["DELIVERED", "CANCELLED"].includes(o.status));
+
+    useDriverLocationSender(activeOrders.map((o) => o._id));
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">

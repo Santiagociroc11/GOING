@@ -32,6 +32,7 @@ export interface IOrder extends Document {
     codCollectedAt?: Date; // Confirmación de recaudo COD por el negocio
     lastReminderAt?: Date;
     reminderCount?: number;
+    lastDriverLocation?: { lat: number; lng: number; updatedAt: Date };
     createdAt: Date;
     updatedAt: Date;
 }
@@ -74,6 +75,11 @@ const OrderSchema: Schema = new Schema(
         codCollectedAt: { type: Date },
         lastReminderAt: { type: Date },
         reminderCount: { type: Number, default: 0 },
+        lastDriverLocation: {
+            lat: Number,
+            lng: Number,
+            updatedAt: Date,
+        },
     },
     { timestamps: true }
 );

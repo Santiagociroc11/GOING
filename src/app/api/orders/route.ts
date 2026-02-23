@@ -7,6 +7,7 @@ import User from "@/models/User";
 import { deductBusinessBalance } from "@/lib/wallet";
 import { sendPushToUsersIfEnabled } from "@/lib/push";
 import { rateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { geocodeAddress } from "@/lib/geocode";
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371; // Radius of the earth in km
@@ -122,10 +123,26 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: `No rate configured for city: ${city}. Please contact Admin.` }, { status: 400 });
         }
 
-        // Calculate price
-        let distanceKm = getDistanceFromLatLonInKm(
-            pickupInfo.coordinates[1], pickupInfo.coordinates[0],
-            dropoffInfo.coordinates[1], dropoffInfo.coordinates[0]
+        // Geocode addresses (Mapbox). Añade ciudad para mejorar precisión en pueblos.
+        const pickupCoords = pickupInfo.coordinates ?? await geocodeAddress(pickupInfo.address, city);
+        const dropoffCoords = dropoffInfo.coordinates ?? await geocodeAddress(dropoffInfo.address, city);
+
+        if (!pickupCoords) {
+            return NextResponse.json(
+                { message: `No se pudo ubicar la dirección de recogida. Intenta incluir el nombre del pueblo/ciudad (ej: "${pickupInfo.address}, ${city}").` },
+                { status: 400 }
+            );
+        }
+        if (!dropoffCoords) {
+            return NextResponse.json(
+                { message: `No se pudo ubicar la dirección de entrega. Intenta incluir el nombre del pueblo/ciudad (ej: "${dropoffInfo.address}, ${city}").` },
+                { status: 400 }
+            );
+        }
+
+        const distanceKm = getDistanceFromLatLonInKm(
+            pickupCoords[1], pickupCoords[0],
+            dropoffCoords[1], dropoffCoords[0]
         );
 
         const price = Number((rate.basePrice + (distanceKm * rate.pricePerKm)).toFixed(2));
@@ -136,11 +153,11 @@ export async function POST(req: Request) {
             status: "PENDING",
             pickupInfo: {
                 ...pickupInfo,
-                coordinates: { type: "Point", coordinates: pickupInfo.coordinates }
+                coordinates: { type: "Point", coordinates: pickupCoords }
             },
             dropoffInfo: {
                 ...dropoffInfo,
-                coordinates: { type: "Point", coordinates: dropoffInfo.coordinates }
+                coordinates: { type: "Point", coordinates: dropoffCoords }
             },
             price,
             details,

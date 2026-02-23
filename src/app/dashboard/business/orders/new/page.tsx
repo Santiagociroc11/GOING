@@ -10,20 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Package, Wallet } from "lucide-react";
-
-// Simula coordenadas para MVP sin API de mapas. Usa pickup y dropoff separados ~5km
-// para que el precio sea consistente (base + ~5km * precio). En producción usar geocoding.
-const BASE_LNG = -74.006;
-const BASE_LAT = 40.7128;
-// ~0.045 grados ≈ 5km en latitud
-const OFFSET_KM = 0.045;
-
-const getPickupCoordinates = (): [number, number] => [BASE_LNG, BASE_LAT];
-const getDropoffCoordinates = (): [number, number] => [
-    BASE_LNG + OFFSET_KM,
-    BASE_LAT + OFFSET_KM * 0.5,
-];
+import { Package, Wallet, Building2 } from "lucide-react";
 
 const orderSchema = z.object({
     pickupAddress: z.string().min(5, "Por favor ingresa una dirección completa"),
@@ -44,6 +31,8 @@ export default function NewOrderPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [balance, setBalance] = useState<number | null>(null);
+    const [useBusinessAddress, setUseBusinessAddress] = useState(false);
+    const [hasSavedPickup, setHasSavedPickup] = useState(false);
 
     const form = useForm<z.infer<typeof orderSchema>>({
         resolver: zodResolver(orderSchema),
@@ -64,8 +53,40 @@ export default function NewOrderPage() {
         });
     }, []);
 
+    useEffect(() => {
+        if (useBusinessAddress) {
+            fetchWithToast<{ pickupAddress: string; pickupContactName: string; pickupContactPhone: string }>("/api/business/pickup").then(
+                ({ data }) => {
+                    if (data?.pickupAddress) {
+                        form.setValue("pickupAddress", data.pickupAddress);
+                        form.setValue("pickupContactName", data.pickupContactName ?? "");
+                        form.setValue("pickupContactPhone", data.pickupContactPhone ?? "");
+                        setHasSavedPickup(true);
+                    } else {
+                        form.setValue("pickupAddress", "");
+                        form.setValue("pickupContactName", "");
+                        form.setValue("pickupContactPhone", "");
+                        setHasSavedPickup(false);
+                    }
+                }
+            );
+        } else {
+            setHasSavedPickup(false);
+        }
+    }, [useBusinessAddress]);
+
     const onSubmit = async (values: z.infer<typeof orderSchema>) => {
         setLoading(true);
+        if (useBusinessAddress && (values.pickupAddress || values.pickupContactName || values.pickupContactPhone)) {
+            await mutateWithToast("/api/business/pickup", {
+                method: "PATCH",
+                body: {
+                    pickupAddress: values.pickupAddress,
+                    pickupContactName: values.pickupContactName,
+                    pickupContactPhone: values.pickupContactPhone,
+                },
+            });
+        }
         const payload = {
             details: values.details,
             paymentMethod: values.paymentMethod,
@@ -74,13 +95,11 @@ export default function NewOrderPage() {
                 address: values.pickupAddress,
                 contactName: values.pickupContactName,
                 contactPhone: values.pickupContactPhone,
-                coordinates: getPickupCoordinates(),
             },
             dropoffInfo: {
                 address: values.dropoffAddress,
                 contactName: values.dropoffContactName,
                 contactPhone: values.dropoffContactPhone,
-                coordinates: getDropoffCoordinates(),
             },
         };
 
@@ -123,17 +142,43 @@ export default function NewOrderPage() {
 
                             {/* Pickup Section */}
                             <div className="space-y-4 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
-                                <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
-                                    <span className="bg-orange-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                                    Detalles de Recogida
-                                </h3>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
+                                        <span className="bg-orange-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                                        Detalles de Recogida
+                                    </h3>
+                                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={useBusinessAddress}
+                                            onChange={(e) => setUseBusinessAddress(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                        />
+                                        <Building2 className="h-4 w-4 text-orange-600" />
+                                        La recogida es en mi negocio
+                                    </label>
+                                </div>
+                                {useBusinessAddress && (
+                                    <p className="text-sm text-gray-600 bg-orange-50/50 border border-orange-100 rounded-lg px-3 py-2">
+                                        {hasSavedPickup ? (
+                                            <>
+                                                Usando la dirección guardada de tu negocio.{" "}
+                                                <button type="button" onClick={() => setHasSavedPickup(false)} className="text-orange-600 hover:underline font-medium">
+                                                    Cambiar
+                                                </button>
+                                            </>
+                                        ) : (
+                                            "Completa tu dirección para guardarla y usarla en futuros pedidos."
+                                        )}
+                                    </p>
+                                )}
                                 <FormField
                                     control={form.control}
                                     name="pickupAddress"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Dirección de Recogida</FormLabel>
-                                            <FormControl><Input placeholder="Ej: Calle 100 #15-30, Local 1" {...field} /></FormControl>
+                                            <FormControl><Input placeholder="Ej: Calle 5 #10-20, Ciénaga" {...field} disabled={useBusinessAddress && hasSavedPickup} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -145,7 +190,7 @@ export default function NewOrderPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Nombre de Contacto</FormLabel>
-                                                <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                                                <FormControl><Input placeholder="John Doe" {...field} disabled={useBusinessAddress && hasSavedPickup} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -156,7 +201,7 @@ export default function NewOrderPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Teléfono de Contacto</FormLabel>
-                                                <FormControl><Input placeholder="300 123 4567" {...field} /></FormControl>
+                                                <FormControl><Input placeholder="300 123 4567" {...field} disabled={useBusinessAddress && hasSavedPickup} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -176,7 +221,7 @@ export default function NewOrderPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Dirección de Entrega</FormLabel>
-                                            <FormControl><Input placeholder="Ej: Avenida Siempre Viva 123" {...field} /></FormControl>
+                                            <FormControl><Input placeholder="Ej: Carrera 3 #15-40, Ciénaga" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -280,10 +325,10 @@ export default function NewOrderPage() {
                                     className="w-full text-lg h-12 bg-orange-600 hover:bg-orange-700 shadow-lg transition-transform hover:-translate-y-0.5"
                                     disabled={loading}
                                 >
-                                    {loading ? "Calculando y Creando..." : "Solicitar Domiciliario"}
+                                    {loading ? "Buscando direcciones y calculando..." : "Solicitar Domiciliario"}
                                 </Button>
                                 <p className="text-center text-xs text-gray-500 mt-3">
-                                    El precio se calculará automáticamente basado en las tarifas activas de tu ciudad.
+                                    Las direcciones se ubican automáticamente (Mapbox). El precio se calcula por distancia.
                                 </p>
                             </div>
                         </form>

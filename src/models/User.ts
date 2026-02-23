@@ -11,6 +11,9 @@ export interface IUser extends Document {
     businessDetails?: {
         companyName: string;
         taxId?: string;
+        pickupAddress?: string;
+        pickupContactName?: string;
+        pickupContactPhone?: string;
     };
     driverDetails?: {
         vehicleType: string;
@@ -32,6 +35,9 @@ const UserSchema: Schema = new Schema(
         businessDetails: {
             companyName: String,
             taxId: String,
+            pickupAddress: String,
+            pickupContactName: String,
+            pickupContactPhone: String,
         },
         driverDetails: {
             vehicleType: String,

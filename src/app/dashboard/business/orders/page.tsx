@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, Truck, Package, XCircle, Eye } from "lucide-react";
 import { RateOrderButton } from "@/components/RateOrderButton";
 import { OrderDetailModal } from "@/components/OrderDetailModal";
+import { OrderTrackingMap } from "@/components/OrderTrackingMap";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
@@ -21,14 +22,34 @@ type Order = {
     productValue?: number;
     codCollectedAt?: string;
     hasRated?: boolean;
-    pickupInfo: { address: string; contactName?: string; contactPhone?: string };
-    dropoffInfo: { address: string; contactName?: string; contactPhone?: string };
+    pickupInfo: {
+        address: string;
+        contactName?: string;
+        contactPhone?: string;
+        coordinates?: { coordinates?: [number, number] };
+    };
+    dropoffInfo: {
+        address: string;
+        contactName?: string;
+        contactPhone?: string;
+        coordinates?: { coordinates?: [number, number] };
+    };
     driverId?: { name: string; driverDetails?: { vehicleType?: string } } | null;
+    lastDriverLocation?: { lat: number; lng: number; updatedAt?: string } | null;
     pickupProofUrl?: string;
     deliveryProofUrl?: string;
     createdAt: string;
     updatedAt?: string;
 };
+
+const DEFAULT_COORDS: [number, number] = [-74.006, 40.7128];
+
+function getCoords(order: Order, type: "pickup" | "dropoff"): [number, number] {
+    const info = type === "pickup" ? order.pickupInfo : order.dropoffInfo;
+    const coords = (info as any)?.coordinates?.coordinates;
+    if (Array.isArray(coords) && coords.length >= 2) return [coords[0], coords[1]];
+    return DEFAULT_COORDS;
+}
 
 export default function BusinessOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -46,9 +67,11 @@ export default function BusinessOrdersPage() {
         setLoading(false);
     };
 
+    const [mapExpanded, setMapExpanded] = useState<Order | null>(null);
+
     useEffect(() => {
         fetchOrders(1);
-        const interval = setInterval(() => fetchOrders(1), 30000);
+        const interval = setInterval(() => fetchOrders(1), 20000);
         return () => clearInterval(interval);
     }, []);
 
@@ -105,7 +128,7 @@ export default function BusinessOrdersPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Mis Pedidos</h2>
-                    <p className="text-gray-500">Rastrea tus entregas. Se actualiza automáticamente cada 30 segundos.</p>
+                    <p className="text-gray-500">Rastrea tus entregas. Se actualiza cada 20 segundos.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <PushNotificationToggle />
@@ -122,11 +145,14 @@ export default function BusinessOrdersPage() {
                         En curso ({activeOrders.length})
                     </h3>
                     <div className="border rounded-lg bg-white overflow-hidden">
-                        <div className="md:hidden divide-y p-2">
+                        <div className="divide-y p-2 sm:p-4">
                             {activeOrders.map((order) => (
-                                <div key={order._id} className="p-4 rounded-lg hover:bg-gray-50/50 space-y-2">
-                                    <div className="flex justify-between items-start">
-                                        <span className="font-bold text-orange-600">${order.price.toFixed(2)}</span>
+                                <div key={order._id} className="p-4 rounded-lg hover:bg-gray-50/50 space-y-3">
+                                    <div className="flex justify-between items-start flex-wrap gap-2">
+                                        <div>
+                                            <span className="font-bold text-orange-600">${order.price.toFixed(2)}</span>
+                                            <span className="text-gray-500 text-sm ml-2">#{order._id.slice(-6).toUpperCase()}</span>
+                                        </div>
                                         {getStatusBadge(order.status)}
                                     </div>
                                     <p className="text-sm text-gray-600 truncate">{order.pickupInfo.address}</p>
@@ -134,69 +160,46 @@ export default function BusinessOrdersPage() {
                                         <Truck className="h-4 w-4 text-orange-500 shrink-0" />
                                         {order.driverId ? `${order.driverId.name}${order.driverId.driverDetails?.vehicleType ? ` (${order.driverId.driverDetails.vehicleType})` : ""}` : "Esperando..."}
                                     </p>
-                                    <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString()}</p>
-                                    <Button size="sm" variant="outline" className="border-orange-200 hover:bg-orange-50" onClick={() => setDetailOrder(order)}>
-                                        <Eye className="h-4 w-4 mr-1" /> Ver detalles
-                                    </Button>
-                                    {["PENDING", "ACCEPTED"].includes(order.status) && (
-                                        <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => cancelOrder(order._id)}>
-                                            <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                                    <OrderTrackingMap
+                                        pickupCoords={getCoords(order, "pickup")}
+                                        dropoffCoords={getCoords(order, "dropoff")}
+                                        driverLocation={order.driverId ? order.lastDriverLocation ?? undefined : undefined}
+                                        height={160}
+                                        showExpand={!!order.driverId}
+                                        onExpand={() => setMapExpanded(order)}
+                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button size="sm" variant="outline" className="border-orange-200 hover:bg-orange-50" onClick={() => setDetailOrder(order)}>
+                                            <Eye className="h-4 w-4 mr-1" /> Ver detalles
                                         </Button>
-                                    )}
+                                        {["PENDING", "ACCEPTED"].includes(order.status) && (
+                                            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => cancelOrder(order._id)}>
+                                                <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                        <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-orange-50/50">
-                                    <TableHead>Fecha</TableHead>
-                                    <TableHead>Recogida</TableHead>
-                                    <TableHead>Entrega</TableHead>
-                                    <TableHead>Domiciliario</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead className="text-right">Precio</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {activeOrders.map((order) => (
-                                    <TableRow key={order._id} className="bg-orange-50/20">
-                                        <TableCell className="font-medium whitespace-nowrap">
-                                            {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                        </TableCell>
-                                        <TableCell className="max-w-[180px] truncate">{order.pickupInfo.address}</TableCell>
-                                        <TableCell className="max-w-[180px] truncate">{order.dropoffInfo.address}</TableCell>
-                                        <TableCell>
-                                            {order.driverId ? (
-                                                <span className="flex items-center gap-1 text-sm">
-                                                    <Truck className="h-4 w-4 text-orange-500" />
-                                                    {order.driverId.name}
-                                                    {order.driverId.driverDetails?.vehicleType && (
-                                                        <span className="text-gray-500">({order.driverId.driverDetails.vehicleType})</span>
-                                                    )}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-400 text-sm">Esperando...</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {getStatusBadge(order.status)}
-                                                <Button size="sm" variant="ghost" className="text-orange-600 hover:bg-orange-50" onClick={() => setDetailOrder(order)}>
-                                                    <Eye className="h-4 w-4 mr-1" /> Ver
-                                                </Button>
-                                                {["PENDING", "ACCEPTED"].includes(order.status) && (
-                                                    <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => cancelOrder(order._id)}>
-                                                        <XCircle className="h-4 w-4 mr-1" /> Cancelar
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right font-bold text-gray-700">${order.price.toFixed(2)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                    </div>
+                </div>
+            )}
+
+            {mapExpanded && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setMapExpanded(null)}>
+                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 border-b flex justify-between items-center">
+                            <h3 className="font-semibold">Pedido #{mapExpanded._id.slice(-6).toUpperCase()}</h3>
+                            <Button variant="ghost" size="sm" onClick={() => setMapExpanded(null)}>Cerrar</Button>
+                        </div>
+                        <div className="p-4">
+                            <OrderTrackingMap
+                                pickupCoords={getCoords(mapExpanded, "pickup")}
+                                dropoffCoords={getCoords(mapExpanded, "dropoff")}
+                                driverLocation={mapExpanded.driverId ? mapExpanded.lastDriverLocation ?? undefined : undefined}
+                                height={400}
+                                showExpand={false}
+                            />
                         </div>
                     </div>
                 </div>
