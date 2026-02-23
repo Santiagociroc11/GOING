@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PICKUP_ICON_HTML, DROPOFF_ICON_HTML } from "@/components/map-icons";
 
 type Props = {
     pickupCoords: [number, number]; // [lng, lat] GeoJSON
@@ -52,17 +53,17 @@ export function RoutePreviewMap({
 
             const pickupIcon = L.divIcon({
                 className: "custom-marker",
-                html: '<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:#f97316;border-radius:8px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/></svg></div>',
-                iconSize: [28, 28],
-                iconAnchor: [14, 14],
+                html: PICKUP_ICON_HTML,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
             });
             L.marker(pickupLatLng, { icon: pickupIcon }).addTo(map);
 
             const dropoffIcon = L.divIcon({
                 className: "custom-marker",
-                html: '<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:#22c55e;border-radius:8px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>',
-                iconSize: [28, 28],
-                iconAnchor: [14, 14],
+                html: DROPOFF_ICON_HTML,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
             });
             L.marker(dropoffLatLng, { icon: dropoffIcon }).addTo(map);
 
@@ -100,8 +101,8 @@ export function RoutePreviewMap({
         <div className={className}>
             <div ref={containerRef} className="rounded-lg overflow-hidden border border-orange-200" style={{ height }} />
             <div className="flex gap-4 mt-1 text-xs text-gray-500">
-                <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded bg-orange-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg></span> Recogida</span>
-                <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded bg-green-500 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> Entrega</span>
+                <span className="flex items-center gap-1.5"><span className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs">🏪</span> Recogida</span>
+                <span className="flex items-center gap-1.5"><span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs">🏠</span> Entrega</span>
             </div>
         </div>
     );

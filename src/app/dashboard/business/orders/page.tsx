@@ -9,6 +9,7 @@ import { RefreshCcw, Truck, Package, XCircle, Eye } from "lucide-react";
 import { RateOrderButton } from "@/components/RateOrderButton";
 import { OrderDetailModal } from "@/components/OrderDetailModal";
 import { OrderTrackingMap } from "@/components/OrderTrackingMap";
+import { OrderTimers } from "@/components/OrderTimers";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 
@@ -40,6 +41,9 @@ type Order = {
     deliveryProofUrl?: string;
     createdAt: string;
     updatedAt?: string;
+    acceptedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
 };
 
 const DEFAULT_COORDS: [number, number] = [-74.006, 40.7128];
@@ -160,6 +164,7 @@ export default function BusinessOrdersPage() {
                                         <Truck className="h-4 w-4 text-orange-500 shrink-0" />
                                         {order.driverId ? `${order.driverId.name}${order.driverId.driverDetails?.vehicleType ? ` (${order.driverId.driverDetails.vehicleType})` : ""}` : "Esperando..."}
                                     </p>
+                                    <OrderTimers order={order} />
                                     <OrderTrackingMap
                                         pickupCoords={getCoords(order, "pickup")}
                                         dropoffCoords={getCoords(order, "dropoff")}

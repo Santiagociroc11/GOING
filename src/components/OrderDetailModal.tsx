@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, User, Phone, Truck, Package, XCircle, Clock } from "lucide-react";
 import { RateOrderButton } from "@/components/RateOrderButton";
+import { OrderTimers } from "@/components/OrderTimers";
 
 type OrderDetail = {
     _id: string;
@@ -22,13 +23,17 @@ type OrderDetail = {
     productValue?: number;
     codCollectedAt?: string;
     hasRated?: boolean;
-    pickupInfo: { address: string; contactName?: string; contactPhone?: string };
-    dropoffInfo: { address: string; contactName?: string; contactPhone?: string };
+    pickupInfo: { address: string; contactName?: string; contactPhone?: string; coordinates?: { coordinates?: [number, number] } };
+    dropoffInfo: { address: string; contactName?: string; contactPhone?: string; coordinates?: { coordinates?: [number, number] } };
     driverId?: { name: string; driverDetails?: { vehicleType?: string } } | null;
     pickupProofUrl?: string;
     deliveryProofUrl?: string;
     createdAt: string;
     updatedAt?: string;
+    acceptedAt?: string;
+    pickedUpAt?: string;
+    deliveredAt?: string;
+    lastDriverLocation?: { lat: number; lng: number } | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -100,6 +105,11 @@ export function OrderDetailModal({
                         </Badge>
                     </DialogTitle>
                 </DialogHeader>
+
+                {/* Temporizadores */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <OrderTimers order={order} />
+                </div>
 
                 {/* Timeline / Historial */}
                 <div className="space-y-3">

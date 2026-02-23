@@ -33,6 +33,9 @@ export interface IOrder extends Document {
     lastReminderAt?: Date;
     reminderCount?: number;
     lastDriverLocation?: { lat: number; lng: number; updatedAt: Date };
+    acceptedAt?: Date;
+    pickedUpAt?: Date;
+    deliveredAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -80,6 +83,9 @@ const OrderSchema: Schema = new Schema(
             lng: Number,
             updatedAt: Date,
         },
+        acceptedAt: { type: Date },
+        pickedUpAt: { type: Date },
+        deliveredAt: { type: Date },
     },
     { timestamps: true }
 );

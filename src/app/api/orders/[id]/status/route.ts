@@ -40,9 +40,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         if (role === "DRIVER") {
             // Driver is accepting an open order - use atomic update to prevent race condition
             if (status === "ACCEPTED" && order.status === "PENDING" && !order.driverId) {
+                const now = new Date();
                 const updated = await Order.findOneAndUpdate(
                     { _id: id, status: "PENDING", driverId: null },
-                    { $set: { driverId: userId, status: "ACCEPTED" } },
+                    { $set: { driverId: userId, status: "ACCEPTED", acceptedAt: now } },
                     { returnDocument: "after" }
                 );
                 if (!updated) {
@@ -110,6 +111,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     }
                     order.deliveryProofUrl = deliveryProofUrl;
                 }
+                const now = new Date();
+                if (status === "PICKED_UP") order.pickedUpAt = now;
+                if (status === "DELIVERED") order.deliveredAt = now;
                 order.status = status;
             } else {
                 return NextResponse.json({ message: "Unauthorized or order already taken" }, { status: 403 });
