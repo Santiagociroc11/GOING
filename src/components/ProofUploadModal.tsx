@@ -10,10 +10,12 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     title: string;
     description: string;
-    onConfirm: (proofUrl: string) => Promise<void>;
+    onConfirm: (proofUrl: string, driverLat?: number, driverLng?: number) => Promise<void>;
+    /** Ubicación del conductor (capturada al abrir el modal). Se envía al API para validar proximidad. */
+    driverLocation?: { lat: number; lng: number } | null;
 };
 
-export function ProofUploadModal({ open, onOpenChange, title, description, onConfirm }: Props) {
+export function ProofUploadModal({ open, onOpenChange, title, description, onConfirm, driverLocation }: Props) {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -42,11 +44,12 @@ export function ProofUploadModal({ open, onOpenChange, title, description, onCon
             const res = await fetch("/api/upload", {
                 method: "POST",
                 body: formData,
+                credentials: "include",
             });
             setUploading(false);
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Error al subir");
-            await onConfirm(data.url);
+            await onConfirm(data.url, driverLocation?.lat, driverLocation?.lng);
             onOpenChange(false);
             reset();
         } catch (err) {

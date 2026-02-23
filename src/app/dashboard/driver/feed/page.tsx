@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast, fetchWithToast, mutateWithToast } from "@/lib/toast";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Package, DollarSign, Clock } from "lucide-react";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
+import { RoutePreviewMap } from "@/components/RoutePreviewMap";
+import { getDistanceMeters } from "@/lib/geo";
 
 type Order = {
     _id: string;
@@ -16,15 +18,25 @@ type Order = {
     details: string;
     paymentMethod?: "PREPAID" | "COD";
     productValue?: number;
-    pickupInfo: { address: string };
-    dropoffInfo: { address: string };
+    pickupInfo: { address: string; coordinates?: { coordinates?: [number, number] } };
+    dropoffInfo: { address: string; coordinates?: { coordinates?: [number, number] } };
     createdAt: string;
 };
+
+const DEFAULT_COORDS: [number, number] = [-74.006, 40.7128];
+
+function getCoords(order: Order, type: "pickup" | "dropoff"): [number, number] {
+    const info = type === "pickup" ? order.pickupInfo : order.dropoffInfo;
+    const coords = (info as any)?.coordinates?.coordinates;
+    if (Array.isArray(coords) && coords.length >= 2) return [coords[0], coords[1]];
+    return DEFAULT_COORDS;
+}
 
 export default function DriverFeedPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [actingOn, setActingOn] = useState<string | null>(null);
+    const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
 
     const fetchFeed = async () => {
         setLoading(true);
@@ -38,6 +50,26 @@ export default function DriverFeedPage() {
         const interval = setInterval(fetchFeed, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => setDriverLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => {},
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        );
+    }, []);
+
+    const sortedOrders = useMemo(() => {
+        if (!driverLocation || orders.length === 0) return orders;
+        return [...orders].sort((a, b) => {
+            const pickupA = getCoords(a, "pickup");
+            const pickupB = getCoords(b, "pickup");
+            const distA = getDistanceMeters(driverLocation.lat, driverLocation.lng, pickupA[1], pickupA[0]);
+            const distB = getDistanceMeters(driverLocation.lat, driverLocation.lng, pickupB[1], pickupB[0]);
+            return distA - distB;
+        });
+    }, [orders, driverLocation]);
 
     const handleAccept = async (orderId: string) => {
         setActingOn(orderId);
@@ -69,8 +101,15 @@ export default function DriverFeedPage() {
                 </div>
             </div>
 
+            {driverLocation && (
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-orange-500" />
+                    Ordenado por distancia a ti (más cercanos primero)
+                </p>
+            )}
+
             <div className="grid gap-6">
-                {orders.length === 0 && !loading && (
+                {sortedOrders.length === 0 && !loading && (
                     <div className="text-center py-20 bg-orange-50/50 border rounded-2xl border-dashed border-orange-200">
                         <Package className="h-12 w-12 text-orange-200 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900">No hay solicitudes activas en este momento.</h3>
@@ -78,14 +117,27 @@ export default function DriverFeedPage() {
                     </div>
                 )}
 
-                {orders.map((order) => (
+                {sortedOrders.map((order) => {
+                    const pickupCoords = getCoords(order, "pickup");
+                    const dropoffCoords = getCoords(order, "dropoff");
+                    const distanceKm = driverLocation
+                        ? (getDistanceMeters(driverLocation.lat, driverLocation.lng, pickupCoords[1], pickupCoords[0]) / 1000).toFixed(1)
+                        : null;
+                    return (
                     <Card key={order._id} className="shadow-lg border-2 border-transparent hover:border-orange-100 transition-all">
                         <CardHeader className="bg-gray-50/50 pb-4">
-                            <div className="flex justify-between items-start">
+                            <div className="flex justify-between items-start flex-wrap gap-2">
                                 <div className="space-y-1">
-                                    <span className="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded-full uppercase">
-                                        Nuevo Pedido
-                                    </span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded-full uppercase">
+                                            Nuevo Pedido
+                                        </span>
+                                        {distanceKm != null && (
+                                            <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
+                                                <MapPin className="h-3 w-3" /> ~{distanceKm} km
+                                            </span>
+                                        )}
+                                    </div>
                                     <CardTitle className="mt-2 text-xl font-bold flex items-center gap-2">
                                         <DollarSign className="h-5 w-5 text-green-600" />
                                         {order.price.toFixed(2)}
@@ -120,6 +172,11 @@ export default function DriverFeedPage() {
                                     <span className="font-semibold">Recaudo contraentrega:</span> Cobra ${order.productValue.toLocaleString()} al cliente.
                                 </div>
                             )}
+                            {(order.pickupInfo as any)?.coordinates?.coordinates && (order.dropoffInfo as any)?.coordinates?.coordinates && (
+                                <div className="mt-2">
+                                    <RoutePreviewMap pickupCoords={pickupCoords} dropoffCoords={dropoffCoords} height={140} />
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter className="pt-4 border-t">
                             <Button
@@ -131,7 +188,7 @@ export default function DriverFeedPage() {
                             </Button>
                         </CardFooter>
                     </Card>
-                ))}
+                );})}
             </div>
         </div>
     );

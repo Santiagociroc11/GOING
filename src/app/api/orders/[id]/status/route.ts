@@ -9,6 +9,7 @@ import {
     wasDriverPaid,
     wasOrderRefunded,
 } from "@/lib/wallet";
+import { getDistanceMeters, PICKUP_DELIVERY_RADIUS_METERS } from "@/lib/geo";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -19,7 +20,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         const { id } = await params;
         const body = await req.json();
-        const { status, pickupProofUrl, deliveryProofUrl, codCollected } = body;
+        const { status, pickupProofUrl, deliveryProofUrl, codCollected, driverLat, driverLng } = body;
 
         const validStatuses = ["PENDING", "ACCEPTED", "PICKED_UP", "DELIVERED", "CANCELLED"];
         if (!validStatuses.includes(status)) {
@@ -54,14 +55,33 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 }).catch(() => {});
                 return NextResponse.json({ message: "Status updated", order: updated });
             }
-            // Driver is updating their accepted order - require proofs
+            // Driver is updating their accepted order - require proofs + geolocation
             if (order.driverId?.toString() === userId) {
+                const lat = typeof driverLat === "number" ? driverLat : null;
+                const lng = typeof driverLng === "number" ? driverLng : null;
+
                 if (status === "PICKED_UP") {
                     if (!pickupProofUrl || typeof pickupProofUrl !== "string") {
                         return NextResponse.json(
                             { message: "Debes subir una foto de prueba de recogida" },
                             { status: 400 }
                         );
+                    }
+                    const pickupCoords = (order.pickupInfo as any)?.coordinates?.coordinates;
+                    if (Array.isArray(pickupCoords) && pickupCoords.length >= 2) {
+                        if (lat == null || lng == null) {
+                            return NextResponse.json(
+                                { message: "Activa la ubicación para marcar la recogida" },
+                                { status: 400 }
+                            );
+                        }
+                        const dist = getDistanceMeters(lat, lng, pickupCoords[1], pickupCoords[0]);
+                        if (dist > PICKUP_DELIVERY_RADIUS_METERS) {
+                            return NextResponse.json(
+                                { message: `Debes estar a menos de ${PICKUP_DELIVERY_RADIUS_METERS}m del punto de recogida. Distancia: ~${Math.round(dist)}m` },
+                                { status: 400 }
+                            );
+                        }
                     }
                     order.pickupProofUrl = pickupProofUrl;
                 }
@@ -71,6 +91,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                             { message: "Debes subir una foto de prueba de entrega" },
                             { status: 400 }
                         );
+                    }
+                    const dropoffCoords = (order.dropoffInfo as any)?.coordinates?.coordinates;
+                    if (Array.isArray(dropoffCoords) && dropoffCoords.length >= 2) {
+                        if (lat == null || lng == null) {
+                            return NextResponse.json(
+                                { message: "Activa la ubicación para marcar la entrega" },
+                                { status: 400 }
+                            );
+                        }
+                        const dist = getDistanceMeters(lat, lng, dropoffCoords[1], dropoffCoords[0]);
+                        if (dist > PICKUP_DELIVERY_RADIUS_METERS) {
+                            return NextResponse.json(
+                                { message: `Debes estar a menos de ${PICKUP_DELIVERY_RADIUS_METERS}m del punto de entrega. Distancia: ~${Math.round(dist)}m` },
+                                { status: 400 }
+                            );
+                        }
                     }
                     order.deliveryProofUrl = deliveryProofUrl;
                 }

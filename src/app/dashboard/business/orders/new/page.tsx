@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Package, Wallet, Building2, MapPin, Loader2 } from "lucide-react";
 import { RoutePreviewMap } from "@/components/RoutePreviewMap";
+import { SinglePointMap } from "@/components/SinglePointMap";
 
 const orderSchema = z.object({
     pickupAddress: z.string().min(5, "Por favor ingresa una dirección completa"),
@@ -42,6 +43,10 @@ export default function NewOrderPage() {
         dropoffCoords?: [number, number];
     } | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
+    const [pickupMapCoords, setPickupMapCoords] = useState<[number, number] | null>(null);
+    const [dropoffMapCoords, setDropoffMapCoords] = useState<[number, number] | null>(null);
+    const [loadingPickupMap, setLoadingPickupMap] = useState(false);
+    const [loadingDropoffMap, setLoadingDropoffMap] = useState(false);
 
     const form = useForm<z.infer<typeof orderSchema>>({
         resolver: zodResolver(orderSchema),
@@ -106,6 +111,32 @@ export default function NewOrderPage() {
         });
         setLoadingPreview(false);
         if (!error && data) setPreview(data);
+    };
+
+    const fetchAddressMap = async (type: "pickup" | "dropoff") => {
+        const address = type === "pickup" ? form.getValues("pickupAddress") : form.getValues("dropoffAddress");
+        if (!address || address.length < 5) {
+            toast.error("Escribe una dirección de al menos 5 caracteres");
+            return;
+        }
+        if (type === "pickup") {
+            setLoadingPickupMap(true);
+            setPickupMapCoords(null);
+        } else {
+            setLoadingDropoffMap(true);
+            setDropoffMapCoords(null);
+        }
+        const { data, error } = await fetchWithToast<{ coords: [number, number] }>("/api/geocode/single", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ address }),
+        });
+        if (type === "pickup") setLoadingPickupMap(false);
+        else setLoadingDropoffMap(false);
+        if (!error && data?.coords) {
+            if (type === "pickup") setPickupMapCoords(data.coords);
+            else setDropoffMapCoords(data.coords);
+        }
     };
 
     const onSubmit = async (values: z.infer<typeof orderSchema>) => {
@@ -213,6 +244,25 @@ export default function NewOrderPage() {
                                             <FormLabel>Dirección de Recogida</FormLabel>
                                             <FormControl><Input placeholder="Ej: Calle 5 #10-20, Ciénaga" {...field} disabled={useBusinessAddress && hasSavedPickup} /></FormControl>
                                             <FormMessage />
+                                            <div className="mt-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => fetchAddressMap("pickup")}
+                                                    disabled={loadingPickupMap || !form.watch("pickupAddress") || form.watch("pickupAddress").length < 5 || (useBusinessAddress && hasSavedPickup)}
+                                                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                >
+                                                    {loadingPickupMap ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
+                                                    Ver en mapa
+                                                </Button>
+                                                {pickupMapCoords && (
+                                                    <div className="mt-2">
+                                                        <SinglePointMap coords={pickupMapCoords} variant="pickup" height={140} />
+                                                        <button type="button" onClick={() => setPickupMapCoords(null)} className="text-xs text-gray-500 hover:underline mt-1">Ocultar mapa</button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </FormItem>
                                     )}
                                 />
@@ -256,6 +306,25 @@ export default function NewOrderPage() {
                                             <FormLabel>Dirección de Entrega</FormLabel>
                                             <FormControl><Input placeholder="Ej: Carrera 3 #15-40, Ciénaga" {...field} /></FormControl>
                                             <FormMessage />
+                                            <div className="mt-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => fetchAddressMap("dropoff")}
+                                                    disabled={loadingDropoffMap || !form.watch("dropoffAddress") || form.watch("dropoffAddress").length < 5}
+                                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                >
+                                                    {loadingDropoffMap ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
+                                                    Ver en mapa
+                                                </Button>
+                                                {dropoffMapCoords && (
+                                                    <div className="mt-2">
+                                                        <SinglePointMap coords={dropoffMapCoords} variant="dropoff" height={140} />
+                                                        <button type="button" onClick={() => setDropoffMapCoords(null)} className="text-xs text-gray-500 hover:underline mt-1">Ocultar mapa</button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </FormItem>
                                     )}
                                 />

@@ -10,6 +10,7 @@ import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { NotificationPromptBanner } from "@/components/NotificationPromptBanner";
 import { ProofUploadModal } from "@/components/ProofUploadModal";
 import { RateOrderButton } from "@/components/RateOrderButton";
+import { getDistanceMeters, PICKUP_DELIVERY_RADIUS_METERS } from "@/lib/geo";
 
 type Order = {
     _id: string;
@@ -22,8 +23,18 @@ type Order = {
     productValue?: number;
     pickupProofUrl?: string;
     deliveryProofUrl?: string;
-    pickupInfo: { address: string; contactName: string; contactPhone: string };
-    dropoffInfo: { address: string; contactName: string; contactPhone: string };
+    pickupInfo: {
+        address: string;
+        contactName: string;
+        contactPhone: string;
+        coordinates?: { coordinates?: [number, number] };
+    };
+    dropoffInfo: {
+        address: string;
+        contactName: string;
+        contactPhone: string;
+        coordinates?: { coordinates?: [number, number] };
+    };
     businessId?: { name: string; businessDetails?: { companyName?: string } } | null;
     createdAt: string;
 };
@@ -54,12 +65,65 @@ export default function DriverOrdersPage() {
         });
     }, []);
 
-    const [proofModal, setProofModal] = useState<{ orderId: string; type: "pickup" | "delivery" } | null>(null);
+    const [proofModal, setProofModal] = useState<{
+        orderId: string;
+        type: "pickup" | "delivery";
+        driverLocation?: { lat: number; lng: number };
+    } | null>(null);
 
-    const handleProofConfirm = async (proofUrl: string) => {
+    const getTargetCoords = (order: Order, type: "pickup" | "delivery"): [number, number] | null => {
+        const info = type === "pickup" ? order.pickupInfo : order.dropoffInfo;
+        const coords = (info as any)?.coordinates?.coordinates;
+        if (Array.isArray(coords) && coords.length >= 2) return [coords[1], coords[0]]; // [lat, lng]
+        return null;
+    };
+
+    const handleProofButtonClick = (order: Order, type: "pickup" | "delivery") => {
+        const targetCoords = getTargetCoords(order, type);
+        if (!targetCoords) {
+            toast.warning("Esta entrega no tiene coordenadas. Se permitirá marcar sin verificación de ubicación.");
+            setProofModal({ orderId: order._id, type });
+            return;
+        }
+        if (!navigator.geolocation) {
+            toast.error("Tu dispositivo no soporta geolocalización.");
+            return;
+        }
+        toast.loading("Verificando ubicación...", { id: "geo-check" });
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                toast.dismiss("geo-check");
+                const [targetLat, targetLng] = targetCoords;
+                const dist = getDistanceMeters(pos.coords.latitude, pos.coords.longitude, targetLat, targetLng);
+                if (dist > PICKUP_DELIVERY_RADIUS_METERS) {
+                    toast.error(`Debes estar a menos de ${PICKUP_DELIVERY_RADIUS_METERS}m. Estás a ~${Math.round(dist)}m.`);
+                    return;
+                }
+                setProofModal({
+                    orderId: order._id,
+                    type,
+                    driverLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+                });
+            },
+            (err) => {
+                toast.dismiss("geo-check");
+                toast.error(err.code === 1 ? "Permiso de ubicación denegado" : "No se pudo obtener tu ubicación");
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
+    const handleProofConfirm = async (proofUrl: string, driverLat?: number, driverLng?: number) => {
         if (!proofModal) return;
         const status = proofModal.type === "pickup" ? "PICKED_UP" : "DELIVERED";
-        const body: Record<string, string> = { status, ...(proofModal.type === "pickup" ? { pickupProofUrl: proofUrl } : { deliveryProofUrl: proofUrl }) };
+        const body: Record<string, unknown> = {
+            status,
+            ...(proofModal.type === "pickup" ? { pickupProofUrl: proofUrl } : { deliveryProofUrl: proofUrl }),
+        };
+        if (driverLat != null && driverLng != null) {
+            body.driverLat = driverLat;
+            body.driverLng = driverLng;
+        }
         const { ok } = await mutateWithToast(`/api/orders/${proofModal.orderId}/status`, { method: "PUT", body });
         if (!ok) throw new Error("No se pudo actualizar");
         toast.success(proofModal.type === "pickup" ? "Pedido marcado como recogido" : "Pedido marcado como entregado");
@@ -148,7 +212,7 @@ export default function DriverOrdersPage() {
                                     {order.status === "ACCEPTED" && (
                                         <Button
                                             className="w-full h-14 text-lg bg-orange-500 hover:bg-orange-600 shadow-md"
-                                            onClick={() => setProofModal({ orderId: order._id, type: "pickup" })}
+                                            onClick={() => handleProofButtonClick(order, "pickup")}
                                         >
                                             <Truck className="mr-2 h-5 w-5" /> He recogido el paquete (sube prueba)
                                         </Button>
@@ -156,7 +220,7 @@ export default function DriverOrdersPage() {
                                     {order.status === "PICKED_UP" && (
                                         <Button
                                             className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 shadow-md"
-                                            onClick={() => setProofModal({ orderId: order._id, type: "delivery" })}
+                                            onClick={() => handleProofButtonClick(order, "delivery")}
                                         >
                                             <PackageCheck className="mr-2 h-5 w-5" /> Marcar como Entregado (sube prueba)
                                         </Button>
@@ -176,6 +240,7 @@ export default function DriverOrdersPage() {
                     ? "Sube una foto que demuestre que recogiste el paquete en el punto de recogida."
                     : "Sube una foto que demuestre la entrega al destinatario."}
                 onConfirm={handleProofConfirm}
+                driverLocation={proofModal?.driverLocation ?? null}
             />
 
             <div className="mt-12">

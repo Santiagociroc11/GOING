@@ -23,8 +23,12 @@ export const toast = {
         sonnerToast.info(message);
     },
 
-    loading: (message: string) => {
-        return sonnerToast.loading(message);
+    loading: (message: string, opts?: { id?: string }) => {
+        return sonnerToast.loading(message, opts);
+    },
+
+    dismiss: (id?: string | number) => {
+        sonnerToast.dismiss(id);
     },
 
     promise: <T,>(

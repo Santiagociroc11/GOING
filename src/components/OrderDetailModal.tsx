@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -57,6 +58,8 @@ export function OrderDetailModal({
     onConfirmCod,
     onRated,
 }: Props) {
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
     if (!order) return null;
 
     const shortId = order._id.toString().slice(-6).toUpperCase();
@@ -170,14 +173,20 @@ export function OrderDetailModal({
                         </p>
                     )}
                     {order.pickupProofUrl && (
-                        <a
-                            href={order.pickupProofUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-orange-600 hover:underline"
-                        >
-                            Ver prueba de recogida
-                        </a>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setImagePreviewUrl(order.pickupProofUrl!)}
+                                className="shrink-0 rounded-lg overflow-hidden border border-gray-200 hover:border-orange-400 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                                <img
+                                    src={order.pickupProofUrl}
+                                    alt="Prueba de recogida"
+                                    className="w-16 h-16 object-cover"
+                                />
+                            </button>
+                            <span className="text-xs text-gray-500">Prueba de recogida</span>
+                        </div>
                     )}
                 </div>
 
@@ -208,14 +217,20 @@ export function OrderDetailModal({
                         </p>
                     )}
                     {order.deliveryProofUrl && (
-                        <a
-                            href={order.deliveryProofUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-orange-600 hover:underline"
-                        >
-                            Ver prueba de entrega
-                        </a>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setImagePreviewUrl(order.deliveryProofUrl!)}
+                                className="shrink-0 rounded-lg overflow-hidden border border-gray-200 hover:border-green-400 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+                            >
+                                <img
+                                    src={order.deliveryProofUrl}
+                                    alt="Prueba de entrega"
+                                    className="w-16 h-16 object-cover"
+                                />
+                            </button>
+                            <span className="text-xs text-gray-500">Prueba de entrega</span>
+                        </div>
                     )}
                 </div>
 
@@ -284,6 +299,25 @@ export function OrderDetailModal({
                     )}
                 </div>
             </DialogContent>
+            <Dialog open={!!imagePreviewUrl} onOpenChange={(v) => !v && setImagePreviewUrl(null)}>
+                <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 bg-black/90 border-0" showCloseButton={false}>
+                    {imagePreviewUrl && (
+                        <img
+                            src={imagePreviewUrl}
+                            alt="Prueba"
+                            className="max-w-full max-h-[90vh] w-auto h-auto object-contain mx-auto"
+                        />
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 text-white hover:bg-white/20"
+                        onClick={() => setImagePreviewUrl(null)}
+                    >
+                        Cerrar
+                    </Button>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }
