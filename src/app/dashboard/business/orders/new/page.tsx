@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Package, Wallet, Building2, MapPin, Loader2 } from "lucide-react";
+import { RoutePreviewMap } from "@/components/RoutePreviewMap";
 
 const orderSchema = z.object({
     pickupAddress: z.string().min(5, "Por favor ingresa una dirección completa"),
@@ -33,7 +34,13 @@ export default function NewOrderPage() {
     const [balance, setBalance] = useState<number | null>(null);
     const [useBusinessAddress, setUseBusinessAddress] = useState(false);
     const [hasSavedPickup, setHasSavedPickup] = useState(false);
-    const [preview, setPreview] = useState<{ distanceKm: number; price: number | null; city: string } | null>(null);
+    const [preview, setPreview] = useState<{
+        distanceKm: number;
+        price: number | null;
+        city: string;
+        pickupCoords?: [number, number];
+        dropoffCoords?: [number, number];
+    } | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
 
     const form = useForm<z.infer<typeof orderSchema>>({
@@ -86,7 +93,13 @@ export default function NewOrderPage() {
         }
         setLoadingPreview(true);
         setPreview(null);
-        const { data, error } = await fetchWithToast<{ distanceKm: number; price: number | null; city: string }>("/api/geocode/preview", {
+        const { data, error } = await fetchWithToast<{
+            distanceKm: number;
+            price: number | null;
+            city: string;
+            pickupCoords?: [number, number];
+            dropoffCoords?: [number, number];
+        }>("/api/geocode/preview", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pickupAddress: pickup, dropoffAddress: dropoff }),
@@ -286,17 +299,26 @@ export default function NewOrderPage() {
                                     Ver distancia y precio estimado
                                 </Button>
                                 {preview && (
-                                    <div className="flex flex-wrap gap-4 p-4 bg-orange-50/50 border border-orange-100 rounded-lg">
-                                        <span className="font-medium text-orange-800">
-                                            ~{preview.distanceKm} km
-                                        </span>
-                                        {preview.price != null && (
-                                            <span className="font-bold text-orange-600">
-                                                ${preview.price.toLocaleString()} (estimado)
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap gap-4 p-4 bg-orange-50/50 border border-orange-100 rounded-lg">
+                                            <span className="font-medium text-orange-800">
+                                                ~{preview.distanceKm} km
                                             </span>
-                                        )}
-                                        {preview.price == null && (
-                                            <span className="text-sm text-amber-600">Sin tarifa configurada para {preview.city}</span>
+                                            {preview.price != null && (
+                                                <span className="font-bold text-orange-600">
+                                                    ${preview.price.toLocaleString()} (estimado)
+                                                </span>
+                                            )}
+                                            {preview.price == null && (
+                                                <span className="text-sm text-amber-600">Sin tarifa configurada para {preview.city}</span>
+                                            )}
+                                        </div>
+                                        {preview.pickupCoords && preview.dropoffCoords && (
+                                            <RoutePreviewMap
+                                                pickupCoords={preview.pickupCoords}
+                                                dropoffCoords={preview.dropoffCoords}
+                                                height={200}
+                                            />
                                         )}
                                     </div>
                                 )}

@@ -61,5 +61,7 @@ export async function POST(req: Request) {
         distanceKm: Math.round(distanceKm * 10) / 10,
         price,
         city,
+        pickupCoords: [pickupCoords[0], pickupCoords[1]] as [number, number],
+        dropoffCoords: [dropoffCoords[0], dropoffCoords[1]] as [number, number],
     });
 }
