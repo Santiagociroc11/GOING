@@ -1,9 +1,18 @@
 /**
  * Ejecuta crons internos llamando a API routes.
  * Añadir un cron = una línea en registerCrons().
+ * En producción (Docker/Easypanel): 127.0.0.1 suele fallar → usar CRON_SELF_URL o NEXTAUTH_URL.
  */
-const port = process.env.PORT || "3000";
-const base = process.env.CRON_SELF_URL || `http://127.0.0.1:${port}`;
+function getCronBaseUrl(): string {
+    if (process.env.CRON_SELF_URL) return process.env.CRON_SELF_URL.replace(/\/$/, "");
+    const nextAuth = process.env.NEXTAUTH_URL;
+    if (nextAuth && (nextAuth.startsWith("http://") || nextAuth.startsWith("https://"))) {
+        return nextAuth.replace(/\/$/, "");
+    }
+    const port = process.env.PORT || "3000";
+    return `http://127.0.0.1:${port}`;
+}
+const base = getCronBaseUrl();
 const cronSecret = process.env.CRON_SECRET;
 
 type CronJob = {
@@ -37,6 +46,7 @@ async function runCron(job: CronJob): Promise<void> {
 }
 
 export function registerCrons(jobs: CronJob[]): void {
+  console.log(`[GOING] Cron base URL: ${base}`);
   for (const job of jobs) {
     setInterval(() => runCron(job), job.intervalMs);
     console.log(`[GOING] Cron: ${job.name || job.path} cada ${job.intervalMs / 1000}s`);
