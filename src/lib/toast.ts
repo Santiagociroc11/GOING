@@ -78,7 +78,7 @@ export async function fetchWithToast<T = unknown>(
     options?: RequestInit
 ): Promise<{ data: T | null; error: string | null }> {
     try {
-        const res = await fetch(url, options);
+        const res = await fetch(url, { credentials: "include", ...options });
 
         if (!res.ok) {
             const message = await getErrorMessage(res);
@@ -109,6 +109,7 @@ export async function mutateWithToast(
     const hasBody = body !== undefined && body !== null;
     try {
         const res = await fetch(url, {
+            credentials: "include",
             ...rest,
             headers: hasBody ? { "Content-Type": "application/json", ...(rest.headers as object) } : rest.headers,
             body: hasBody ? JSON.stringify(body) : undefined,
