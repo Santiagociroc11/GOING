@@ -4,7 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
 import { sendPushIfEnabled } from "@/lib/push";
 import {
-    creditDriverBalance,
+    creditOrderPayment,
     refundBusinessBalance,
     wasDriverPaid,
     wasOrderRefunded,
@@ -99,7 +99,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         if (status === "DELIVERED" && order.driverId) {
             const alreadyPaid = await wasDriverPaid(order._id);
             if (!alreadyPaid) {
-                await creditDriverBalance(order.driverId, order.price, order._id);
+                await creditOrderPayment(order.driverId, order.price, order._id);
             }
         }
         if (status === "CANCELLED") {

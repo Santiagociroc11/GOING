@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchWithToast } from "@/lib/toast";
+import { fetchWithToast, mutateWithToast, toast } from "@/lib/toast";
 import { KPICard } from "@/components/ui/kpi-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -12,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { RefreshCcw, DollarSign, Receipt, Building2 } from "lucide-react";
+import { RefreshCcw, DollarSign, Receipt, Building2, Percent, Save } from "lucide-react";
 
 type Movement = {
     _id: string;
@@ -25,6 +27,7 @@ type Movement = {
 type FinanceData = {
     movements: Movement[];
     summary: { totalRevenue: number; totalOrders: number };
+    platform?: { balance: number; commissionRate: number };
 };
 
 type Business = { _id: string; name: string; companyName: string };
@@ -34,6 +37,8 @@ export default function AdminFinancePage() {
     const [businesses, setBusinesses] = useState<Business[]>([]);
     const [filterBusiness, setFilterBusiness] = useState<string>("");
     const [loading, setLoading] = useState(true);
+    const [commissionRate, setCommissionRate] = useState<string>("30");
+    const [savingCommission, setSavingCommission] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -55,6 +60,30 @@ export default function AdminFinancePage() {
     useEffect(() => {
         fetchData();
     }, [filterBusiness]);
+
+    useEffect(() => {
+        if (data?.platform?.commissionRate != null) {
+            setCommissionRate(String(Math.round(data.platform.commissionRate * 100)));
+        }
+    }, [data?.platform?.commissionRate]);
+
+    const handleSaveCommission = async () => {
+        const rate = parseInt(commissionRate, 10);
+        if (isNaN(rate) || rate < 0 || rate > 100) {
+            toast.error("La tasa debe estar entre 0 y 100");
+            return;
+        }
+        setSavingCommission(true);
+        const { ok } = await mutateWithToast("/api/admin/platform-settings", {
+            method: "PUT",
+            body: { commissionRate: rate / 100 },
+        });
+        setSavingCommission(false);
+        if (ok) {
+            toast.success("Tasa de comisión actualizada");
+            fetchData();
+        }
+    };
 
     if (!data) return null;
 
@@ -87,9 +116,34 @@ export default function AdminFinancePage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 <KPICard icon={<DollarSign className="text-emerald-600" />} label="Ingresos Totales" value={`$${data.summary.totalRevenue.toFixed(2)}`} iconClassName="bg-emerald-100" />
                 <KPICard icon={<Receipt className="text-blue-600" />} label="Pedidos Entregados" value={data.summary.totalOrders} iconClassName="bg-blue-100" />
+                <KPICard icon={<Building2 className="text-orange-600" />} label="Comisión Going" value={`$${(data.platform?.balance ?? 0).toFixed(2)}`} iconClassName="bg-orange-100" />
+                <KPICard icon={<Percent className="text-purple-600" />} label="Tasa" value={`${((data.platform?.commissionRate ?? 0.3) * 100).toFixed(0)}%`} iconClassName="bg-purple-100" />
+            </div>
+
+            <div className="border rounded-lg bg-white p-4 sm:p-6">
+                <h3 className="text-lg font-semibold mb-3">Configuración de comisión</h3>
+                <p className="text-sm text-gray-500 mb-4">Porcentaje que Going retiene de cada domicilio. El domiciliario recibe el resto.</p>
+                <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex-1 min-w-[120px]">
+                        <Label htmlFor="commission">Tasa (%)</Label>
+                        <Input
+                            id="commission"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={commissionRate}
+                            onChange={(e) => setCommissionRate(e.target.value)}
+                            className="mt-1"
+                        />
+                    </div>
+                    <Button onClick={handleSaveCommission} disabled={savingCommission}>
+                        <Save className="h-4 w-4 mr-2" />
+                        {savingCommission ? "Guardando..." : "Guardar"}
+                    </Button>
+                </div>
             </div>
 
             <div className="border rounded-lg bg-white overflow-hidden">

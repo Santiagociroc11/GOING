@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Order from "@/models/Order";
+import PlatformSettings from "@/models/PlatformSettings";
 
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
@@ -35,8 +36,14 @@ export async function GET(req: Request) {
         },
     ]);
 
+    const platform = await PlatformSettings.findOne().lean();
+
     return NextResponse.json({
         movements,
         summary: summary[0] || { totalRevenue: 0, totalOrders: 0 },
+        platform: {
+            balance: platform?.balance ?? 0,
+            commissionRate: platform?.commissionRate ?? 0.3,
+        },
     });
 }

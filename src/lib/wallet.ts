@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import User from "@/models/User";
 import WalletTransaction from "@/models/WalletTransaction";
-import Order from "@/models/Order";
+import PlatformSettings from "@/models/PlatformSettings";
 
 export async function deductBusinessBalance(
     businessId: mongoose.Types.ObjectId,
@@ -80,6 +80,31 @@ export async function creditDriverBalance(
         orderId,
         note: note ?? "Pago por entrega completada",
     });
+}
+
+/** Obtiene la tasa de comisión (0.3 = 30%). Default 0.3. */
+export async function getCommissionRate(): Promise<number> {
+    const settings = await PlatformSettings.findOne().lean();
+    return settings?.commissionRate ?? 0.3;
+}
+
+/** Paga al domiciliario y retiene comisión para Going. Driver recibe 70%, Going 30%. */
+export async function creditOrderPayment(
+    driverId: mongoose.Types.ObjectId,
+    orderPrice: number,
+    orderId: mongoose.Types.ObjectId
+): Promise<void> {
+    const rate = await getCommissionRate();
+    const driverAmount = Number((orderPrice * (1 - rate)).toFixed(2));
+    const platformAmount = Number((orderPrice * rate).toFixed(2));
+
+    await creditDriverBalance(driverId, driverAmount, orderId, `Pago por entrega (70%, comisión ${(rate * 100).toFixed(0)}%)`);
+
+    await PlatformSettings.findOneAndUpdate(
+        {},
+        { $inc: { balance: platformAmount } },
+        { upsert: true }
+    );
 }
 
 export async function rechargeBusinessBalance(
