@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Package, Wallet, Building2 } from "lucide-react";
+import { Package, Wallet, Building2, MapPin, Loader2 } from "lucide-react";
 
 const orderSchema = z.object({
     pickupAddress: z.string().min(5, "Por favor ingresa una dirección completa"),
@@ -33,6 +33,8 @@ export default function NewOrderPage() {
     const [balance, setBalance] = useState<number | null>(null);
     const [useBusinessAddress, setUseBusinessAddress] = useState(false);
     const [hasSavedPickup, setHasSavedPickup] = useState(false);
+    const [preview, setPreview] = useState<{ distanceKm: number; price: number | null; city: string } | null>(null);
+    const [loadingPreview, setLoadingPreview] = useState(false);
 
     const form = useForm<z.infer<typeof orderSchema>>({
         resolver: zodResolver(orderSchema),
@@ -74,6 +76,24 @@ export default function NewOrderPage() {
             setHasSavedPickup(false);
         }
     }, [useBusinessAddress]);
+
+    const fetchPreview = async () => {
+        const pickup = form.getValues("pickupAddress");
+        const dropoff = form.getValues("dropoffAddress");
+        if (!pickup || !dropoff || pickup.length < 5 || dropoff.length < 5) {
+            setPreview(null);
+            return;
+        }
+        setLoadingPreview(true);
+        setPreview(null);
+        const { data, error } = await fetchWithToast<{ distanceKm: number; price: number | null; city: string }>("/api/geocode/preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pickupAddress: pickup, dropoffAddress: dropoff }),
+        });
+        setLoadingPreview(false);
+        if (!error && data) setPreview(data);
+    };
 
     const onSubmit = async (values: z.infer<typeof orderSchema>) => {
         setLoading(true);
@@ -250,6 +270,36 @@ export default function NewOrderPage() {
                                         )}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Preview distancia */}
+                            <div className="space-y-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={fetchPreview}
+                                    disabled={loadingPreview || !form.watch("pickupAddress") || !form.watch("dropoffAddress") || form.watch("pickupAddress").length < 5 || form.watch("dropoffAddress").length < 5}
+                                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                                >
+                                    {loadingPreview ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <MapPin className="h-4 w-4 mr-2" />}
+                                    Ver distancia y precio estimado
+                                </Button>
+                                {preview && (
+                                    <div className="flex flex-wrap gap-4 p-4 bg-orange-50/50 border border-orange-100 rounded-lg">
+                                        <span className="font-medium text-orange-800">
+                                            ~{preview.distanceKm} km
+                                        </span>
+                                        {preview.price != null && (
+                                            <span className="font-bold text-orange-600">
+                                                ${preview.price.toLocaleString()} (estimado)
+                                            </span>
+                                        )}
+                                        {preview.price == null && (
+                                            <span className="text-sm text-amber-600">Sin tarifa configurada para {preview.city}</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Package Details */}
