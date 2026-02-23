@@ -17,7 +17,7 @@ export default function Sidebar({ effectiveSession }: { effectiveSession?: Effec
     if (nav.length === 0) return null;
 
     return (
-        <aside className="hidden md:block w-56 shrink-0 border-r bg-white/80 backdrop-blur-sm relative z-[500]">
+        <aside className="hidden md:block w-56 shrink-0 border-r bg-white/80 backdrop-blur-sm relative z-[400]">
             <nav className="sticky top-20 flex flex-col gap-1 p-4">
                 {nav.map((item) => {
                     const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
