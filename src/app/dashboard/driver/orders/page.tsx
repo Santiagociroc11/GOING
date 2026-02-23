@@ -11,6 +11,7 @@ import { NotificationPromptBanner } from "@/components/NotificationPromptBanner"
 import { ProofUploadModal } from "@/components/ProofUploadModal";
 import { RateOrderButton } from "@/components/RateOrderButton";
 import { getDistanceMeters, PICKUP_DELIVERY_RADIUS_METERS } from "@/lib/geo";
+import { RoutePreviewMap } from "@/components/RoutePreviewMap";
 
 type Order = {
     _id: string;
@@ -198,6 +199,15 @@ export default function DriverOrdersPage() {
                                         </div>
                                     </div>
 
+                                    {(order.pickupInfo as any)?.coordinates?.coordinates && (order.dropoffInfo as any)?.coordinates?.coordinates && (
+                                        <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 160 }}>
+                                            <RoutePreviewMap
+                                                pickupCoords={(order.pickupInfo as any).coordinates.coordinates}
+                                                dropoffCoords={(order.dropoffInfo as any).coordinates.coordinates}
+                                                height={160}
+                                            />
+                                        </div>
+                                    )}
                                     <div className="bg-gray-50 p-4 rounded-xl border text-sm text-gray-700">
                                         <span className="font-bold flex items-center gap-2 mb-1"><PackageCheck className="h-4 w-4" /> Detalles del Paquete</span>
                                         {order.details}

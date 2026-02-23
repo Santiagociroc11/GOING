@@ -8,6 +8,10 @@ type Props = {
     variant?: "pickup" | "dropoff";
     className?: string;
     height?: number;
+    /** Si es true, el usuario puede hacer clic en el mapa para mover el punto. */
+    editable?: boolean;
+    /** Se llama con [lng, lat] cuando el usuario selecciona una nueva posición. */
+    onCoordsChange?: (coords: [number, number]) => void;
 };
 
 export function SinglePointMap({
@@ -15,9 +19,11 @@ export function SinglePointMap({
     variant = "pickup",
     className = "",
     height = 160,
+    editable = false,
+    onCoordsChange,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<{ map: any } | null>(null);
+    const mapRef = useRef<{ map: any; marker: any } | null>(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -54,9 +60,21 @@ export function SinglePointMap({
                 iconSize: [36, 36],
                 iconAnchor: [18, 18],
             });
-            L.marker(latLng, { icon }).addTo(map);
+            const marker = L.marker(latLng, { icon, draggable: editable }).addTo(map);
 
-            mapRef.current = { map };
+            if (editable && onCoordsChange) {
+                const updateFromLatLng = (latlng: { lat: number; lng: number }) => {
+                    marker.setLatLng(latlng);
+                    onCoordsChange([latlng.lng, latlng.lat]);
+                };
+                map.on("click", (e: { latlng: { lat: number; lng: number } }) => updateFromLatLng(e.latlng));
+                marker.on("dragend", () => {
+                    const pos = marker.getLatLng();
+                    onCoordsChange([pos.lng, pos.lat]);
+                });
+            }
+
+            mapRef.current = { map, marker };
         };
 
         init();
@@ -66,7 +84,14 @@ export function SinglePointMap({
                 mapRef.current = null;
             }
         };
-    }, [mounted, coords.join(","), variant]);
+    }, [mounted, coords.join(","), variant, editable, onCoordsChange]);
+
+    // Sincronizar marcador cuando coords cambian desde el padre (ej. nuevo geocode)
+    useEffect(() => {
+        if (!mapRef.current?.marker || !coords?.length) return;
+        const [lng, lat] = coords;
+        mapRef.current.marker.setLatLng([lat, lng]);
+    }, [coords.join(",")]);
 
     if (!mounted) {
         return (
@@ -79,7 +104,9 @@ export function SinglePointMap({
     return (
         <div className={className}>
             <div ref={containerRef} className="rounded-lg overflow-hidden border border-gray-200" style={{ height }} />
-            <p className="text-xs text-gray-500 mt-1">Confirma que el punto en el mapa coincida con la dirección.</p>
+            <p className="text-xs text-gray-500 mt-1">
+            {editable ? "Haz clic en el mapa o arrastra el marcador para ajustar la ubicación si no coincide." : "Confirma que el punto en el mapa coincida con la dirección."}
+        </p>
         </div>
     );
 }

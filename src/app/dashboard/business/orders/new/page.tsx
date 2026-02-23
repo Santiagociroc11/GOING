@@ -159,11 +159,13 @@ export default function NewOrderPage() {
                 address: values.pickupAddress,
                 contactName: values.pickupContactName,
                 contactPhone: values.pickupContactPhone,
+                ...(pickupMapCoords && { coordinates: pickupMapCoords }),
             },
             dropoffInfo: {
                 address: values.dropoffAddress,
                 contactName: values.dropoffContactName,
                 contactPhone: values.dropoffContactPhone,
+                ...(dropoffMapCoords && { coordinates: dropoffMapCoords }),
             },
         };
 
@@ -258,7 +260,13 @@ export default function NewOrderPage() {
                                                 </Button>
                                                 {pickupMapCoords && (
                                                     <div className="mt-2">
-                                                        <SinglePointMap coords={pickupMapCoords} variant="pickup" height={140} />
+                                                        <SinglePointMap
+                                                            coords={pickupMapCoords}
+                                                            variant="pickup"
+                                                            height={140}
+                                                            editable
+                                                            onCoordsChange={setPickupMapCoords}
+                                                        />
                                                         <button type="button" onClick={() => setPickupMapCoords(null)} className="text-xs text-gray-500 hover:underline mt-1">Ocultar mapa</button>
                                                     </div>
                                                 )}
@@ -320,7 +328,13 @@ export default function NewOrderPage() {
                                                 </Button>
                                                 {dropoffMapCoords && (
                                                     <div className="mt-2">
-                                                        <SinglePointMap coords={dropoffMapCoords} variant="dropoff" height={140} />
+                                                        <SinglePointMap
+                                                            coords={dropoffMapCoords}
+                                                            variant="dropoff"
+                                                            height={140}
+                                                            editable
+                                                            onCoordsChange={setDropoffMapCoords}
+                                                        />
                                                         <button type="button" onClick={() => setDropoffMapCoords(null)} className="text-xs text-gray-500 hover:underline mt-1">Ocultar mapa</button>
                                                     </div>
                                                 )}
@@ -470,6 +484,7 @@ export default function NewOrderPage() {
                                 </Button>
                                 <p className="text-center text-xs text-gray-500 mt-3">
                                     Las direcciones se ubican automáticamente (Mapbox). El precio se calcula por distancia.
+                                    Se guardan la <strong>dirección escrita</strong> y la <strong>ubicación del mapa</strong> para que el domiciliario vea ambas.
                                 </p>
                             </div>
                         </form>
