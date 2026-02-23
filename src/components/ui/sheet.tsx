@@ -63,7 +63,7 @@ export function Sheet({ open, onOpenChange, children, side = "left" }: SheetProp
             <div
                 role="button"
                 tabIndex={0}
-                className="fixed inset-0 z-[60] bg-black/50 md:hidden tap-clean cursor-pointer touch-manipulation animate-in fade-in duration-200"
+                className="fixed inset-0 z-[600] bg-black/50 md:hidden tap-clean cursor-pointer touch-manipulation animate-in fade-in duration-200"
                 style={{ touchAction: "manipulation" }}
                 onClick={() => onOpenChange(false)}
                 onKeyDown={(e) => e.key === "Escape" && onOpenChange(false)}
@@ -71,7 +71,7 @@ export function Sheet({ open, onOpenChange, children, side = "left" }: SheetProp
             />
             <div
                 className={cn(
-                    "fixed top-0 z-[61] h-[100dvh] min-h-[100vh] w-72 max-w-[85vw] bg-white shadow-xl md:hidden flex flex-col animate-in slide-in-from-left duration-200",
+                    "fixed top-0 z-[601] h-[100dvh] min-h-[100vh] w-72 max-w-[85vw] bg-white shadow-xl md:hidden flex flex-col animate-in slide-in-from-left duration-200",
                     "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
                     side === "left" ? "left-0" : "right-0"
                 )}

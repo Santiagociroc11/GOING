@@ -186,13 +186,13 @@ export default function BusinessOrdersPage() {
             )}
 
             {mapExpanded && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setMapExpanded(null)}>
+                <div className="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center p-4" onClick={() => setMapExpanded(null)}>
                     <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <div className="p-4 border-b flex justify-between items-center">
+                        <div className="p-4 border-b flex justify-between items-center relative z-[500] bg-white">
                             <h3 className="font-semibold">Pedido #{mapExpanded._id.slice(-6).toUpperCase()}</h3>
                             <Button variant="ghost" size="sm" onClick={() => setMapExpanded(null)}>Cerrar</Button>
                         </div>
-                        <div className="p-4">
+                        <div className="p-4 relative z-0">
                             <OrderTrackingMap
                                 pickupCoords={getCoords(mapExpanded, "pickup")}
                                 dropoffCoords={getCoords(mapExpanded, "dropoff")}

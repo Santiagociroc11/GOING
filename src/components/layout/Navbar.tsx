@@ -21,7 +21,7 @@ export default function Navbar({ effectiveSession }: { effectiveSession?: Effect
     };
 
     return (
-        <nav className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md shadow-sm">
+        <nav className="sticky top-0 z-[500] w-full border-b bg-white/80 backdrop-blur-md shadow-sm">
             {isImpersonating && (
                 <div className="bg-amber-100 border-b border-amber-300 px-4 py-2 flex items-center justify-between text-sm">
                     <span className="font-medium text-amber-800">

@@ -48,7 +48,7 @@ export function OrderTrackingMap({
             const pickupLatLng: [number, number] = [pickupLat, pickupLng];
             const dropoffLatLng: [number, number] = [dropoffLat, dropoffLng];
 
-            const map = L.map(el, { zoomControl: false }).setView(pickupLatLng, 13);
+            const map = L.map(el, { zoomControl: false, attributionControl: false }).setView(pickupLatLng, 13);
             L.control.zoom({ position: "topright" }).addTo(map);
 
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
