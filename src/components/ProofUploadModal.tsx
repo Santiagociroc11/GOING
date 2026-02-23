@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, ImagePlus, Loader2 } from "lucide-react";
 
 type Props = {
     open: boolean;
@@ -21,6 +21,7 @@ export function ProofUploadModal({ open, onOpenChange, title, description, onCon
     const [uploading, setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
@@ -64,6 +65,7 @@ export function ProofUploadModal({ open, onOpenChange, title, description, onCon
         setFile(null);
         setPreview(null);
         if (inputRef.current) inputRef.current.value = "";
+        if (cameraInputRef.current) cameraInputRef.current.value = "";
     };
 
     const handleOpenChange = (v: boolean) => {
@@ -79,6 +81,7 @@ export function ProofUploadModal({ open, onOpenChange, title, description, onCon
                     <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
+                    {/* Input para elegir de galería */}
                     <input
                         ref={inputRef}
                         type="file"
@@ -86,16 +89,36 @@ export function ProofUploadModal({ open, onOpenChange, title, description, onCon
                         onChange={handleFileChange}
                         className="hidden"
                     />
+                    {/* Input para tomar foto con cámara (móvil) */}
+                    <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        capture="environment"
+                        onChange={handleFileChange}
+                        className="hidden"
+                    />
                     {!preview ? (
-                        <button
-                            type="button"
-                            onClick={() => inputRef.current?.click()}
-                            className="w-full h-40 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-400 hover:bg-orange-50/50 transition-colors"
-                        >
-                            <Camera className="h-12 w-12 text-gray-400" />
-                            <span className="text-sm text-gray-600">Toca para tomar o seleccionar foto</span>
-                            <span className="text-xs text-gray-400">JPEG, PNG o WebP · máx 5MB</span>
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                                type="button"
+                                onClick={() => cameraInputRef.current?.click()}
+                                className="flex-1 h-36 border-2 border-dashed border-orange-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-400 hover:bg-orange-50/50 transition-colors"
+                            >
+                                <Camera className="h-10 w-10 text-orange-500" />
+                                <span className="text-sm font-medium text-gray-700">Tomar foto</span>
+                                <span className="text-xs text-gray-500">Abre la cámara</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => inputRef.current?.click()}
+                                className="flex-1 h-36 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-400 hover:bg-orange-50/50 transition-colors"
+                            >
+                                <ImagePlus className="h-10 w-10 text-gray-400" />
+                                <span className="text-sm font-medium text-gray-700">Elegir de galería</span>
+                                <span className="text-xs text-gray-500">JPEG, PNG, WebP · máx 5MB</span>
+                            </button>
+                        </div>
                     ) : (
                         <div className="relative">
                             <img src={preview} alt="Vista previa" className="w-full h-48 object-cover rounded-xl" />
@@ -103,7 +126,7 @@ export function ProofUploadModal({ open, onOpenChange, title, description, onCon
                                 variant="outline"
                                 size="sm"
                                 className="absolute top-2 right-2"
-                                onClick={() => { setFile(null); setPreview(null); if (inputRef.current) inputRef.current.value = ""; }}
+                                onClick={() => { setFile(null); setPreview(null); if (inputRef.current) inputRef.current.value = ""; if (cameraInputRef.current) cameraInputRef.current.value = ""; }}
                             >
                                 Cambiar
                             </Button>

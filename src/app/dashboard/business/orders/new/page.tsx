@@ -98,6 +98,12 @@ export default function NewOrderPage() {
         }
         setLoadingPreview(true);
         setPreview(null);
+        const body: { pickupAddress: string; dropoffAddress: string; pickupCoords?: [number, number]; dropoffCoords?: [number, number] } = {
+            pickupAddress: pickup,
+            dropoffAddress: dropoff,
+        };
+        if (pickupMapCoords) body.pickupCoords = pickupMapCoords;
+        if (dropoffMapCoords) body.dropoffCoords = dropoffMapCoords;
         const { data, error } = await fetchWithToast<{
             distanceKm: number;
             price: number | null;
@@ -107,7 +113,7 @@ export default function NewOrderPage() {
         }>("/api/geocode/preview", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pickupAddress: pickup, dropoffAddress: dropoff }),
+            body: JSON.stringify(body),
         });
         setLoadingPreview(false);
         if (!error && data) setPreview(data);

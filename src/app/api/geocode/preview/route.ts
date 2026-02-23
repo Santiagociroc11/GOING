@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { pickupAddress, dropoffAddress } = body;
+    const { pickupAddress, dropoffAddress, pickupCoords: bodyPickupCoords, dropoffCoords: bodyDropoffCoords } = body;
     if (!pickupAddress || !dropoffAddress || typeof pickupAddress !== "string" || typeof dropoffAddress !== "string") {
         return NextResponse.json({ message: "pickupAddress y dropoffAddress requeridos" }, { status: 400 });
     }
@@ -37,8 +37,15 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ message: "Usuario no encontrado" }, { status: 404 });
 
     const city = (user as any).city?.toUpperCase() || "";
-    const pickupCoords = await geocodeAddress(pickupAddress, city);
-    const dropoffCoords = await geocodeAddress(dropoffAddress, city);
+
+    // Usar coordenadas del mapa si el usuario las seleccionó; si no, geocodificar
+    const isValidCoords = (c: unknown): c is [number, number] =>
+        Array.isArray(c) && c.length >= 2 && typeof c[0] === "number" && typeof c[1] === "number";
+    let pickupCoords: [number, number] | null = isValidCoords(bodyPickupCoords) ? bodyPickupCoords : null;
+    let dropoffCoords: [number, number] | null = isValidCoords(bodyDropoffCoords) ? bodyDropoffCoords : null;
+
+    if (!pickupCoords) pickupCoords = await geocodeAddress(pickupAddress, city);
+    if (!dropoffCoords) dropoffCoords = await geocodeAddress(dropoffAddress, city);
 
     if (!pickupCoords) {
         return NextResponse.json({ message: "No se pudo ubicar la dirección de recogida" }, { status: 400 });
